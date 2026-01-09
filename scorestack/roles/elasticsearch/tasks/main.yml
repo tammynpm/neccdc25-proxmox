@@ -20,6 +20,8 @@
     owner: root
     group: elasticsearch
     mode: 0660
+  vars:
+    elastic_ram_gb: 2  # Set to 2GB as requested
 
 - name: Configure limits
   ansible.builtin.pam_limits:

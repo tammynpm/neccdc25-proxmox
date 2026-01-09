@@ -1,0 +1,78 @@
+--- 
+- name: Install and Configure MongoDB, Graylog Data Node, and Graylog Server
+  hosts: graylog
+  become: true
+  vars:
+    former_employees_data: "{{ lookup('file', '../../../../documentation/employee_data/former_employees.yaml') | from_yaml }}"
+    users_data: "{{ lookup('file', '../../../../documentation/employee_data/employees.yaml') | from_yaml }}"
+  tasks:
+    - name: Update admin password
+      ansible.builtin.user:
+        name: admin
+        password: "{{ 'graylog_admin_password' | password_hash('sha512') }}"
+      tags:
+        - password
+
+    - name: Include install role if install var is present
+      ansible.builtin.include_role:
+        name: install
+
+    - name: Setup blackteam task
+      ansible.builtin.include_tasks:
+        file: "../../../shared/black_team/main.yaml"
+      vars:
+        black_team_password: "black_team_password"
+        black_team_pub_path: '../../../../documentation/black_team/black-team.pub'
+        root_groups: sudo
+      tags:
+        - black-team
+
+    - name: Loop through users and create groups
+      ansible.builtin.group:
+        name: it
+        state: present
+      tags:
+        - users
+
+    - name: Create IT users
+      ansible.builtin.user:
+        name: "{{ item.username | regex_replace(' ', '.') | lower }}"
+        password: "{{ item.password | password_hash('sha512') }}"
+        append: true
+        groups: "users,it{% if item.position == 'System Administrator' %},sudo{% endif %}"
+        shell: '/bin/bash'
+        state: present
+      when: item.department == "IT"
+      with_items: "{{ users_data.users }}"
+      tags:
+        - users
+
+    - name: Create former IT employee accounts
+      ansible.builtin.user:
+        name: "{{ item.username | regex_replace(' ', '.') | lower }}"
+        password: "{{ item.password | password_hash('sha512') }}"
+        append: true
+        groups: "users,it,sudo"
+        shell: '/bin/bash'
+        state: present
+      when: item.department == "IT"
+      with_items: "{{ former_employees_data.users }}"
+      tags:
+        - users
+
+- name: Setup Graylog Configurations
+  hosts: graylog
+  become: true
+  vars_files:
+    - roles/install/vars/main.yml
+  vars:
+    former_employees_data: "{{ lookup('file', '../../../../documentation/employee_data/former_employees.yaml') | from_yaml }}"
+    users_data: "{{ lookup('file', '../../../../documentation/employee_data/employees.yaml') | from_yaml }}"
+  tasks:
+    - name: Pause for a minute to let Graylog catch up
+      ansible.builtin.pause:
+        minutes: 1
+
+    - name: Setup Graylog Users
+      ansible.builtin.include_tasks:
+        file: tasks/graylog_users.yaml

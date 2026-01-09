@@ -76,7 +76,7 @@
 
     - name: Loop through users and create groups
       ansible.builtin.group:
-        name: IT
+        name: it 
         state: present
       tags:
         - users
@@ -107,6 +107,6 @@
       tags:
         - users
 
-    - name: EC2 instance connect
-      ansible.builtin.include_tasks:
-        file: "tasks/eic.yaml"
+    # - name: EC2 instance connect
+    #   ansible.builtin.include_tasks:
+    #     file: "tasks/eic.yaml"

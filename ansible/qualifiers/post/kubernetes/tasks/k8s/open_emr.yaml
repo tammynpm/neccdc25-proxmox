@@ -42,7 +42,7 @@
             namespace: infrastructure
             sectionName: http
         hostnames:
-          - "portal.{{ hostvars[inventory_hostname]['team'] }}.placebo-pharma.com"
+          - "portal.placebo-pharma.com"
         rules:
           - filters:
             - type: RequestRedirect
@@ -70,7 +70,7 @@
             namespace: infrastructure
             sectionName: https
         hostnames:
-          - "portal.{{ hostvars[inventory_hostname]['team'] }}.placebo-pharma.com"
+          - "portal.placebo-pharma.com"
         rules:
           - matches:
               - path:

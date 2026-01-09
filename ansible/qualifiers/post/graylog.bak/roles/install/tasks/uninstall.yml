@@ -1,0 +1,94 @@
+- name: Stop MongoDB service
+  ansible.builtin.systemd:
+    name: mongod
+    state: stopped
+    enabled: false
+  ignore_errors: true
+
+- name: Uninstall MongoDB packages
+  ansible.builtin.apt:
+    name: mongodb-org*
+    state: absent
+    purge: true
+
+- name: Remove MongoDB log directory
+  ansible.builtin.file:
+    path: /var/log/mongodb
+    state: absent
+    recurse: true
+  ignore_errors: true
+  become: true
+
+- name: Remove MongoDB data directory
+  become: true
+  ignore_errors: true
+  ansible.builtin.file:
+    path: /var/lib/mongodb
+    state: absent
+    recurse: true
+
+- name: Remove MongoDB repository file
+  ansible.builtin.file:
+    path: /etc/apt/sources.list.d/mongodb-org-6.0.list
+    state: absent
+
+- name: Remove MongoDB GPG key
+  ansible.builtin.file:
+    path: /usr/share/keyrings/mongodb-server-6.0.gpg
+    state: absent
+
+- name: Stop Graylog Data Node service
+  ansible.builtin.systemd:
+    name: graylog-datanode.service
+    state: stopped
+  ignore_errors: true
+
+- name: Disable Graylog Data Node service
+  ansible.builtin.systemd:
+    name: graylog-datanode.service
+    enabled: false
+  ignore_errors: true
+
+- name: Uninstall Graylog Data Node
+  ansible.builtin.apt:
+    name: graylog-datanode
+    state: absent
+    purge: true
+
+- name: Stop Graylog Server service
+  ansible.builtin.systemd:
+    name: graylog-server.service
+    state: stopped
+  ignore_errors: true
+
+- name: Disable Graylog Server service
+  ansible.builtin.systemd:
+    name: graylog-server.service
+    enabled: false
+  ignore_errors: true
+
+- name: Uninstall Graylog Server
+  ansible.builtin.apt:
+    name: graylog-server
+    state: absent
+    purge: true
+
+- name: Remove Graylog Server configuration files
+  ansible.builtin.file:
+    path: /etc/graylog/server
+    state: absent
+    recurse: true
+  ignore_errors: true
+
+- name: Remove Graylog repository package
+  ansible.builtin.file:
+    path: /tmp/graylog-repository.deb
+    state: absent
+  ignore_errors: true
+  become: true
+
+- name: Remove Graylog repository list file
+  ansible.builtin.file:
+    path: /etc/apt/sources.list.d/graylog.list
+    state: absent
+  ignore_errors: true

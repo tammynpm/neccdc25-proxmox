@@ -31,5 +31,4 @@
       ansible.builtin.include_role:
         name: ca
       vars:
-        ca_backup_source: "../files/ca/placebo-pharma-CA-01-CA.p12"
         ca_backup_password: "{{ adserver_password }}"

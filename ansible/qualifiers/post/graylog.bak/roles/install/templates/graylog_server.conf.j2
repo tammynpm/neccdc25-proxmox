@@ -1,0 +1,55 @@
+{% set reserved = [
+  'elasticsearch_hosts',
+  'mongodb_uri','mongodb_useauth',
+  'message_journal_enabled','message_journal_dir','message_journal_max_size','message_journal_max_age',
+  'data_dir',
+  'http_bind_address','http_publish_uri','http_external_uri',
+  'password_secret','root_password_sha2',
+  'telemetry_enabled',
+  'http_enable_tls'
+] %}
+
+
+{% if graylog_config is defined %}
+{% for key, value in graylog_config.items() %}
+{% if key not in reserved %}
+{{ key }} = {{ value }}
+{% endif %}
+{% endfor %}
+{% endif %}
+
+
+opensearch_hosts = {{ opensearch_protocol }}://{{opensearch_host}}:{{opensearch_port}}
+opensearch_username = {{ opensearch_username }}
+opensearch_password = {{ opensearch_initial_admin_password }}
+
+# MongoDB Configuration
+mongodb_uri = {{ graylog_mongodb_uri | default('mongodb://localhost/graylog') }}
+
+# If you have authentication enabled, use this format:
+# mongodb_uri = mongodb://graylog:{{ graylog_mongodb_password | default('graylog') }}@localhost:27017/graylog
+
+# Enable MongoDB authentication
+# mongodb_useauth = {{ graylog_mongodb_useauth | default('true') }}
+
+# Journal settings
+message_journal_enabled = true
+message_journal_dir = {{ graylog_message_journal_dir | default('/var/lib/graylog-server/journal') }}
+message_journal_max_size = {{ graylog_message_journal_max_size | default('12gb') }}
+message_journal_max_age = {{ graylog_message_journal_max_age | default('12h') }}
+
+# Data directory
+data_dir = {{ graylog_data_dir | default('/var/lib/graylog-server')}}
+
+# Web interface settings
+http_bind_address = {{ graylog_http_bind_address | default('0.0.0.0:9000') }}
+http_publish_uri = {{ graylog_http_publish_uri | default('http://' + HOST_IP + ':9000/') }}
+http_external_uri = {{ graylog_http_external_uri | default('http://' + HOST_IP + ':9000/') }}
+http_enable_tls = {{ graylog_http_enable_tls | default('false') }}
+
+# Security settings
+password_secret = {{ graylog_password_secret }}
+root_password_sha2 = {{ graylog_server_password_hash }}
+
+# Disable telemetry
+telemetry_enabled = false

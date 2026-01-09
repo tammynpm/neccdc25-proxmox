@@ -1,0 +1,41 @@
+---
+- name: run powershell scripts
+  hosts: all
+  gather_facts: false
+
+  # vars:
+  #   ansible_user: Administrator
+  #   ansible_connection: winrm
+  #   ansible_winrm_transport: basic
+  #   ansible_winrm_server_cert_validation: ignore
+
+  tasks:
+  - name: check if temp directory exists
+    ansible.windows.win_file: 
+      path: C:\temp
+      state: directory
+  - name: copy scripts to remote windows_vm
+    ansible.windows.win_copy:
+      src: "{{ item }}"
+      dest: C:\temp\
+    with_fileglob:
+    - "{{playbook_dir}}/scripts/*.ps1"
+    - "{{playbook_dir}}/templates/winrm.ps1"
+
+  # - name: run winrm.ps1
+  #   ansible.windows.win_shell: >
+  #     powershell.exe -NoProfile -ExecutionPolicy Bypass -File C:\temp\winrm.ps1
+
+  - name: run setup.ps1
+    ansible.windows.win_shell: >
+      powershell.exe -NoProfile -ExecutionPolicy Bypass -File C:\temp\setup.ps1
+
+  - name: run ansible.ps1
+    ansible.windows.win_shell: >
+      powershell.exe -NoProfile -ExecutionPolicy Bypass -File C:\temp\ansible.ps1
+  
+  - name: cleanup 
+    ansible.windows.win_file: 
+      path: C:\temp\
+      state: absent
+

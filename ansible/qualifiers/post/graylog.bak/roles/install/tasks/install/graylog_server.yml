@@ -1,0 +1,110 @@
+- name: install opensearch
+  include_tasks: opensearch.yml
+  tags:
+    - opensearch
+    
+- name: Ensure Graylog Server is installed
+  ansible.builtin.apt:
+    name: graylog-server
+    state: present
+    force: yes
+  register: graylog_install_result
+  notify: Restart Graylog Server
+
+- name: Generate SHA-256 hash of admin password
+  ansible.builtin.shell:
+    cmd: echo -n "{{ graylog_admin_password }}" | sha256sum | cut -d' ' -f1
+  register: password_hash
+  no_log: true
+
+- name: Set password hash fact
+  ansible.builtin.set_fact:
+    graylog_server_password_hash: "{{ password_hash.stdout }}"
+  no_log: true
+
+- name: Check if configuration is set and not empty
+  ansible.builtin.shell:
+    cmd: "grep -q '^{{ item.key }}=[^[:space:]]*[^[:space:]]' /etc/graylog/server/server.conf || exit 1"
+  register: config_check
+  failed_when: false
+  ignore_errors: true
+  with_items:
+    - { key: "password_secret", value: "{{ graylog_password_secret }}" }
+    - { key: "root_password_sha2", value: "{{ graylog_server_password_hash }}" }
+    - { key: "http_bind_address", value: "{{ http_bind_address }}" }
+    - { key: "http_publish_uri", value: "{{ http_publish_uri }}" }
+    - { key: "http_external_uri", value: "{{ http_external_uri }}" }
+    - { key: "message_journal_max_size", value: "{{ message_journal_max_size }}" }
+    - { key: "message_journal_max_age", value: "{{ message_journal_max_age }}" }
+  loop_control:
+    index_var: index
+
+- name: Ensure Graylog configuration directory exists
+  ansible.builtin.file:
+    path: /etc/graylog/server
+    state: directory
+    mode: '0755'
+    owner: graylog
+    group: graylog
+
+#tammy
+- name: create graylog data directory if not exists
+  ansible.builtin.file:
+    path: "/var/lib/graylog-server"
+    state: directory
+    mode: '0755'
+    owner: graylog
+    group: graylog
+
+- name: Configure Graylog Server using template
+  ansible.builtin.template:
+    src: graylog_server.conf.j2
+    dest: /etc/graylog/server/server.conf
+    owner: graylog
+    group: graylog
+    mode: '0640'
+  vars:
+    graylog_config:
+      password_secret: "{{ graylog_password_secret }}"
+      root_password_sha2: "{{ graylog_server_password_hash }}"
+      http_bind_address: "{{ http_bind_address }}"
+      http_publish_uri: "{{ http_publish_uri }}"
+      http_external_uri: "{{ http_external_uri }}"
+      message_journal_max_size: "{{ message_journal_max_size }}"
+      message_journal_max_age: "{{ message_journal_max_age }}"
+      data_dir: "/var/lib/graylog-server"
+  notify: Restart Graylog Server
+
+- name: Ensure Graylog Server is enabled and started
+  ansible.builtin.systemd:
+    name: graylog-server
+    enabled: true
+    state: restarted
+    daemon_reload: yes
+  register: graylog_service
+  # async: 120
+  # poll: 0
+
+- name: Wait for Graylog port 9000 to open
+  ansible.builtin.wait_for:
+    host: 127.0.0.1
+    port: 9000
+    timeout: 300
+
+- name: Check Graylog service status
+  ansible.builtin.command: systemctl status graylog-server
+  register: graylog_status_check
+  changed_when: false
+  ignore_errors: true
+
+- name: View Graylog service logs if failed to start
+  ansible.builtin.command: journalctl -u graylog-server -n 50 --no-pager
+  when: graylog_status_check.rc != 0
+  register: graylog_logs
+  changed_when: false
+  ignore_errors: true
+
+- name: Display Graylog logs if service failed
+  ansible.builtin.debug:
+    var: graylog_logs.stdout_lines
+  when: graylog_status_check.rc != 0

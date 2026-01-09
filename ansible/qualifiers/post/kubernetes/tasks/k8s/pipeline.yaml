@@ -1,5 +1,4 @@
 ---
-
 - name: Copy Pipeline Files
   ansible.builtin.template:
     src: "templates/pipeline/{{ item }}"
@@ -39,7 +38,7 @@
         INFLUX_BUCKET: "{{ 'PlaceboPharmaData' | b64encode }}"
         INFLUX_ORG: "{{ 'PlaceboPharma' | b64encode }}"
         INFLUXDB_TOKEN: "{{ lookup('file', '../../pre/database/output/pipeline-token') | b64encode }}"
-        INFLUX_URL: "{{ 'https://database.{0}.placebo-pharma.com:8086'.format(hostvars[inventory_hostname]['team']) | b64encode }}"
+        INFLUX_URL: "{{ 'https://database.placebo-pharma.com:8086' | b64encode }}"
   tags:
     - services
     - pipeline
@@ -60,7 +59,7 @@
         INFLUX_BUCKET: "{{ 'PlaceboPharmaData' | b64encode }}"
         INFLUX_ORG: "{{ 'PlaceboPharma' | b64encode }}"
         INFLUXDB_TOKEN: "{{ lookup('file', '../../pre/database/output/data-science-token') | b64encode }}"
-        INFLUX_URL: "{{ 'https://database.{0}.placebo-pharma.com:8086'.format(hostvars[inventory_hostname]['team']) | b64encode }}"
+        INFLUX_URL: "{{ 'https://database.placebo-pharma.com:8086' | b64encode }}"
   tags:
     - services
     - pipeline

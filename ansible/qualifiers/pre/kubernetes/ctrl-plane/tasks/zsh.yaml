@@ -40,6 +40,13 @@
   tags:
     - zsh
 
+- name: ensure /opt/oh-my-zsh does not exist
+  ansible.builtin.file:
+    path: "/opt/oh-my-zsh"
+    state: absent
+  tags:
+    - zsh
+    
 - name: Move oh-my-zsh to /opt
   ansible.builtin.command:
     cmd: mv /root/.oh-my-zsh /opt/oh-my-zsh

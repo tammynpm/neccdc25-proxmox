@@ -1,0 +1,39 @@
+---
+
+## Playbook vars
+graylog_install: true
+graylog_configure: true 
+graylog_uninstall: false
+
+HOST_IP: "{{ ansible_host }}" # localhost 
+GRAYLOG_API_WAIT_TIME: 60 
+GRAYLOG_API_WAIT_RETRIES: 30 
+
+# #tammy
+opensearch_host: "{{HOST_IP}}"
+opensearch_port: 9200
+opensearch_protocol: "http"
+opensearch_username: "admin"
+opensearch_initial_admin_password: "Opensearch_admin_password_123_!"
+
+## Install information 
+mongodb_repo: "https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/7.0 multiverse"
+mongodb_key: "https://www.mongodb.org/static/pgp/server-7.0.asc"
+graylog_repo: "https://packages.graylog2.org/repo/packages/graylog-6.4-repository_latest.deb"
+# graylog_password_secret: "{{ lookup('password', '/dev/null length=96 chars=ascii_letters,digits') }}"
+graylog_password_secret: "8gXVRgylU5YgcrR9Azf7VRCAMZlK2xf2obvB02oeEkwEJpYZMbjPv9kcQaIjImT9JKb2BWTRQ4j0UTLfDJvNNr0qhGHnwyE8"
+graylog_admin_password: "Graylog_admin_password_123_!"
+graylog_admin_user: "admin" # this is readonly - changing this variable will not change the main user account 
+vm_max_map_count: 262144
+
+## Graylog variables
+HTTP_BIND_ADDRESS: "0.0.0.0:9000"  # Default is localhost and port 9000 
+HTTP_PUBLISH_URI: "http://{{ HOST_IP }}:9000/" # Default is the first non-loopback interface and port 9000 
+HTTP_EXTERNAL_URI: "{{ HTTP_PUBLISH_URI }}" 
+MESSAGE_JOURNAL_MAX_SIZE: 12gb # Default is 5gb  
+MESSAGE_JOURNAL_MAX_AGE: 12h # Default is 12h 
+SERVER_API_URL: "http://{{ HOST_IP }}:9000/api"
+CA_ORGANIZATION: "Placebo Pharma"
+RENEWAL_POLICY:
+  mode: "AUTOMATIC"
+  certificate_lifetime: "P30D"

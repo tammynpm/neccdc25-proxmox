@@ -18,54 +18,58 @@ variable "volume_size" {
   default     = 50
 }
 
-variable "fast_launch" {
-  type        = bool
-  description = "Enable fast launch for the instance."
-  default     = true
+# tammy 
+source "qemu" "proxmox-windows" {
+  iso_checksum       = "6dae072e7f78f4ccab74a45341de0d6e2d45c39be25f1f5920a2ab4f51d7bcbb"
+  iso_url           = "/home/ble/workspace/infra/windows-server-2019.iso"
+  output_directory   = "output-windows"
+  vm_name           = "windows-${local.timestamp}"
+  disk_size         = var.volume_size
+  format            = "qcow2"
+  communicator      = "winrm"
+  winrm_username    = var.windows_username
+  winrm_password    = var.windows_password
+  winrm_insecure    = true
+  winrm_timeout     = "30m"  # Increased timeout
+  winrm_use_ssl     = false
+  shutdown_command  = "shutdown /s /t 10 /f /d p:4:1 /c \"Packer Shutdown\""
+  shutdown_timeout  = "30m"
+
+  # Boot configuration
+  boot_wait        = "2m"
+  boot_command = [
+    "<wait>a<wait>"  # Press 'a' to boot from CD-ROM if prompted
+  ]
+  boot_key_interval = "100ms"
+
+  # CPU and memory
+  cpus      = 2
+  memory    = 4096
+  net_device = "virtio-net"
+
+  # ISO and disk configuration
+  disk_interface = "virtio"
+  disk_discard = "unmap"
+  disk_detect_zeroes = "unmap"
+  disk_cache = "writeback"
+
+  floppy_files = [
+    "${path.root}/templates/autounattend.xml",
+    "${path.root}/templates/winrm.ps1"
+  ]
+
+  qemuargs = [
+    ["-drive", "file=/home/ble/workspace/infra/virtio-win-0.1.285.iso,media=cdrom,if=ide,index=2"],
+    ["-boot", "order=cd,once=d"],  # First boot from CD, then hard drive
+    ["-cpu", "host"],
+    ["-m", "4096M"],
+    ["-smp", "2"]
+  ]
+  
+  # Headless mode - set to false if you need to see the VM console
+  headless = false
 }
 
-source "amazon-ebs" "firstrun-windows" {
-  region        = "us-east-2"
-  ami_name      = "packer-windows-server-${local.timestamp}"
-  source_ami    = "ami-0b2aaa6348b752c38" #EC2LaunchV2-Windows_Server-2019-English-Full-Base-2023.12.13
-  instance_type = "t3a.2xlarge"
-  security_group_id = "sg-027af0024a1813997"
-  subnet_id         = "subnet-04255ba24872d7d79"
-  associate_public_ip_address = true
-
-  # EBS Storage Volume
-  launch_block_device_mappings {
-    device_name           = "/dev/sda1"
-    volume_type           = "gp3"
-    volume_size           = var.volume_size
-    delete_on_termination = true
-  }
-
-  # Fast launch settings
-  fast_launch {
-    enable_fast_launch = var.fast_launch
-    
-  }
-
-  # Windows specific settings
-  disable_stop_instance = true
-  communicator          = "winrm"
-  winrm_username        = var.windows_username
-  winrm_password        = var.windows_password
-  winrm_insecure        = true
-  winrm_timeout         = "15m"
-  winrm_use_ssl         = false
-
-  user_data = templatefile("${path.root}/templates/bootstrap.pkrtpl.hcl", {
-    windows_username = var.windows_username,
-    windows_password = var.windows_password
-  })
-
-  tags = {
-    "Name" = "packer-windows-server"
-    "Date" = "${local.timestamp}"
-  }
-  run_tags = {
-    "Name" = "packer-temporary-build-server"
-  }
+build {
+  sources = ["source.qemu.proxmox-windows"]
 }

@@ -131,7 +131,8 @@
             namespace: infrastructure
             sectionName: http
         hostnames:
-          - "falco.{{ hostvars[inventory_hostname]['team'] }}.placebo-pharma.com"
+          # - "falco.{{ hostvars[inventory_hostname]['team'] }}.placebo-pharma.com"
+          - "falco.placebo-pharma.com"
         rules:
           - matches:
               - path:
@@ -162,7 +163,7 @@
             namespace: infrastructure
             sectionName: https
         hostnames:
-          - "falco.{{ hostvars[inventory_hostname]['team'] }}.placebo-pharma.com"
+          - "falco.placebo-pharma.com"
         rules:
           - matches:
               - path:

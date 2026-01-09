@@ -1,15 +1,15 @@
 upstream kubernetes_backend_http {
-    server 10.0.{{ octet_a }}.5:30080;
-    server 10.0.{{ octet_a }}.255:30080;
-    server 10.0.{{ octet_b }}.0:30080;
-    server 10.0.{{ octet_b }}.77:30080;
+    server 10.37.33.20:30080; #node3
+    server 10.37.33.9:30080; #ctrlplane
+    server 10.37.33.19:30080; #node1
+    server 10.37.33.18:30080; #node2
 }
 
 upstream kubernetes_backend_https {
-    server 10.0.{{ octet_a }}.5:30443;
-    server 10.0.{{ octet_a }}.255:30443;
-    server 10.0.{{ octet_b }}.0:30443;
-    server 10.0.{{ octet_b }}.77:30443;
+    server 10.37.33.20:30443; #node3
+    server 10.37.33.9:30443; #ctrlplane
+    server 10.37.33.19:30443; #node1
+    server 10.37.33.18:30443; #node2
 }
 
 server {

@@ -24,6 +24,15 @@
     state: present
   when: "'graylog-datanode' not in ansible_facts.packages"
 
+- name: Ensure data directory exists #tammy
+  ansible.builtin.file:
+    path: /data
+    state: directory
+    owner: graylog
+    group: graylog
+    mode: '0755'
+    recurse: yes
+
 - name: Ensure vm.max_map_count is set
   ansible.builtin.lineinfile:
     path: /etc/sysctl.conf
@@ -43,9 +52,14 @@
     line: "password_secret={{ graylog_password_secret }}"
     regexp: "^password_secret ="
     state: present
+  notify: Restart Graylog Data Node
 
 - name: Enable and start Graylog Data Node
   ansible.builtin.systemd:
     name: graylog-datanode.service
     enabled: true
     state: started
+
+
+
+

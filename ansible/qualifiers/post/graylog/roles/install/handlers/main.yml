@@ -8,3 +8,8 @@
   ansible.builtin.systemd:
     name: graylog-server
     state: restarted
+
+- name: Restart Graylog Data Node
+  ansible.builtin.systemd:
+    name: graylog-datanode
+    state: restarted

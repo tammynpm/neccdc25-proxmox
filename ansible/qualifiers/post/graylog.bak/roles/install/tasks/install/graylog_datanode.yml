@@ -1,0 +1,59 @@
+---
+- name: Download and install Graylog repository package
+  ansible.builtin.get_url:
+    url: "{{ graylog_repo }}"
+    dest: /tmp/graylog-repository.deb
+    mode: '0644'
+  when: "'graylog-datanode' not in ansible_facts.packages"
+
+- name: Install Graylog repository package
+  ansible.builtin.command:
+    cmd: dpkg -i /tmp/graylog-repository.deb
+  args:
+    creates: /etc/apt/sources.list.d/graylog.list
+  when: "'graylog-datanode' not in ansible_facts.packages"
+
+- name: Update apt cache
+  ansible.builtin.apt:
+    update_cache: true
+  when: "'graylog-datanode' not in ansible_facts.packages"
+
+- name: Install Graylog Data Node
+  ansible.builtin.apt:
+    name: graylog-datanode
+    state: present
+  when: "'graylog-datanode' not in ansible_facts.packages"
+
+# added 
+- name: ensure sysctl.conf exists
+  ansible.builtin.file:
+    path: /etc/sysctl.conf
+    state: touch
+    mode: '0644'
+  become: true
+
+- name: Ensure vm.max_map_count is set
+  ansible.builtin.lineinfile:
+    path: /etc/sysctl.conf
+    line: "vm.max_map_count = {{ vm_max_map_count }}"
+    state: present
+  notify:
+    - Reload sysctl
+
+- name: Manually reload sysctl
+  ansible.builtin.command:
+    cmd: /sbin/sysctl -p
+  become: true
+
+- name: Configure Graylog Data Node password_secret
+  ansible.builtin.lineinfile:
+    path: /etc/graylog/datanode/datanode.conf
+    line: "password_secret={{ graylog_password_secret }}"
+    regexp: "^password_secret ="
+    state: present
+
+- name: Enable and start Graylog Data Node
+  ansible.builtin.systemd:
+    name: graylog-datanode.service
+    enabled: true
+    state: started

@@ -1,0 +1,54 @@
+---
+- name: Reload sysctl
+  ansible.builtin.command:
+    cmd: /sbin/sysctl -p
+  become: true
+
+- name: Restart MongoDB
+  ansible.builtin.systemd:
+    name: mongod
+    state: restarted
+    daemon_reload: yes
+  async: 60
+  poll: 0
+  register: mongodb_restart
+
+- name: Wait for MongoDB to be available after restart
+  ansible.builtin.wait_for:
+    port: 27017
+    delay: 5
+    timeout: 60
+  when: mongodb_restart is defined and mongodb_restart.changed
+
+- name: restart opensearch #tammy
+  ansible.builtin.systemd:
+    name: opensearch
+    state: restarted
+    daemon_reload: yes
+
+- name: Restart Graylog Server
+  ansible.builtin.systemd:
+    name: graylog-server
+    state: restarted
+    daemon_reload: yes
+  async: 120
+  poll: 0
+  register: graylog_restart
+
+- name: Wait for Graylog to be available after restart
+  ansible.builtin.uri:
+    url: "http://{{ HOST_IP }}:9000/api/system/lbstatus"
+    return_content: yes
+    status_code: 200
+    timeout: 60
+  register: graylog_status
+  until: graylog_status.status == 200
+  retries: 30
+  delay: 10
+  when: graylog_restart is defined and graylog_restart.changed
+  ignore_errors: true
+
+- name: Update apt cache
+  ansible.builtin.apt:
+    update_cache: yes
+  become: true

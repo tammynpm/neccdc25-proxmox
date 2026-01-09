@@ -1,12 +1,15 @@
 cluster:
   children:
     ctrl_plane:
-      vars:
-        discord_webhook_url:
-          0: 'https://discord.com/api/webhooks/0123456789/abcdefghijklmnopqrstuvwxyz'
+      # vars:
+      #   discord_webhook_url:
+      #     0: 'https://discord.com/api/webhooks/0123456789/abcdefghijklmnopqrstuvwxyz'
     node_1:
     node_2:
     node_3:
+  vars:
+    ansible_user: ubuntu
+    ansible_become_password: "{{ cluster_password}}"
 
 worker_nodes:
   children:
@@ -37,16 +40,17 @@ graylog_clients:
 
 graylog:
   vars:
-    ansible_user: admin
+    ansible_user: graylog
     ansible_private_key_file: ../../../../documentation/black_team/black-team
     ansible_port: 22
 
 scorestack:
   hosts:
-    score.placebo-pharma.com
-  vars:
-    ansible_user: ubuntu
-    ansible_private_key_file: ../documentation/black_team/black-team
+    score.placebo-pharma.com: #tammy
+      ansible_host: 10.37.32.12
+      ansible_ssh_private_key_file: ../documentation/black_team/black-team
+      ansible_user: ubuntu
+      ansible_become_password: "ubuntu"
 
 wireguard:
   hosts:
@@ -66,6 +70,8 @@ windows:
     ansible_connection: winrm
     ansible_winrm_transport: ntlm
     ansible_winrm_server_cert_validation: ignore
+    ansible_winrm_scheme: http #tammy
+    ansible_winrm_port: 5985 #tammy
     ntp_servers: "0.pool.ntp.org 1.pool.ntp.org 2.pool.ntp.org"
     netbios: "PLACEBO-PHARMA"
     public_dns_forwarders:
@@ -79,21 +85,23 @@ windows_clients:
 
 all:
   vars:
+    team: 2
     domain: placebo-pharma.com
     adserver_domain: placebo-pharma.local
-    adserver_password: example-password
-    blackteam_password: example-password
+    adserver_password: Thunderpoint789*
+    blackteam_password: 4f5UfRlspl&et*&us!
+    cluster_password: ubuntu
     team_address:
-      firewall_public: "10.255.{{ team }}.254"
-      firewall_private: "10.0.{{ (team * 4) + 3 }}.254"
-      firewall_dmz: "10.0.{{ (team * 4) }}.254"
-      ctrl_plane: "10.0.{{ (team * 4) + 2 }}.255"
-      database: "10.0.{{ (team * 4) + 3 }}.192"
-      graylog: "10.0.{{ (team * 4) }}.247"
-      nginx: "10.0.{{ (team * 4) }}.200"
-      node_1: "10.0.{{ (team * 4) + 3 }}.0"
-      node_2: "10.0.{{ (team * 4) + 3 }}.77"
-      node_3: "10.0.{{ (team * 4) + 2 }}.5"
-      windows_ca: "10.0.{{ (team * 4) }}.138"
-      windows_dc: "10.0.{{ (team * 4) + 2 }}.77"
-      windows_workstation: "10.0.{{ (team * 4) + 2 }}.128"
+      # firewall_public: "10.255.{{ team }}.254"
+      # firewall_private: "10.0.{{ (team * 4) + 3 }}.254"
+      # firewall_dmz: "10.0.{{ (team * 4) }}.254"
+      ctrl_plane: "10.37.33.23"
+      database: "10.37.33.15"
+      graylog: "10.37.32.10"
+      nginx: "10.37.32.4"
+      node_1: "10.37.33.19"
+      node_2: "10.37.33.18"
+      node_3: "10.37.33.20"
+      windows_ca: "10.37.33.21"
+      windows_dc: "10.37.33.5"
+      windows_workstation: "10.37.33.4"

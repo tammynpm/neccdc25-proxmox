@@ -1,0 +1,104 @@
+- name: Define headers for Graylog API
+  ansible.builtin.set_fact:
+    headers:
+      Authorization: "Basic {{ (graylog_admin_user + ':' + graylog_admin_password) | b64encode }}"
+      X-Requested-By: "Ansible"
+      Content-Type: "application/json"
+
+- name: Create Graylog compliance users
+  ansible.builtin.uri:
+    url: "{{ SERVER_API_URL }}/users"
+    method: POST
+    headers: "{{ headers }}"
+    body:
+      first_name: "{{ item.first_name }}"
+      last_name: "{{ item.last_name }}"
+      username: "{{ item.username | lower }}"
+      email: "{{ item.email }}"
+      session_timeout_ms: 7200000
+      timezone: America/New_York
+      password: "{{ item.password }}"
+      roles: >-
+        {{
+          ['Reader'] +
+          (['Admin'] if item.position == 'Auditor' else [])
+        }}
+      permissions: []
+    body_format: json
+    status_code: 201
+  when: item.department == "Compliance"
+  with_items: "{{ users_data.users }}"
+
+- name: Create Graylog IT users
+  ansible.builtin.uri:
+    url: "{{ SERVER_API_URL }}/users"
+    method: POST
+    headers: "{{ headers }}"
+    body:
+      first_name: "{{ item.first_name }}"
+      last_name: "{{ item.last_name }}"
+      username: "{{ item.username | lower }}"
+      email: "{{ item.email }}"
+      session_timeout_ms: 7200000
+      timezone: America/New_York
+      password: "{{ item.password }}"
+      roles: >-
+        {{
+          ['Reader'] +
+          ['Dashboard Creator'] +
+          (['Admin'] if item.position == 'System Administrator' else [])
+        }}
+      permissions: []
+    body_format: json
+    status_code: 201
+  when: item.department == "IT"
+  with_items: "{{ users_data.users }}"
+
+- name: Create Graylog CTO user
+  ansible.builtin.uri:
+    url: "{{ SERVER_API_URL }}/users"
+    method: POST
+    headers: "{{ headers }}"
+    body:
+      first_name: "{{ item.first_name }}"
+      last_name: "{{ item.last_name }}"
+      username: "{{ item.username | lower }}"
+      email: "{{ item.email }}"
+      session_timeout_ms: 7200000
+      timezone: America/New_York
+      password: "{{ item.password }}"
+      roles:
+        - Admin
+        - Dashboard Creator
+        - Pipelines Manager
+        - Reader
+        - User Inspector
+      permissions: []
+    body_format: json
+    status_code: 201
+  when: item.position == "CTO"
+  with_items: "{{ users_data.users }}"
+
+- name: Create Graylog Former IT users
+  ansible.builtin.uri:
+    url: "{{ SERVER_API_URL }}/users"
+    method: POST
+    headers: "{{ headers }}"
+    body:
+      first_name: "{{ item.first_name }}"
+      last_name: "{{ item.last_name }}"
+      username: "{{ item.username | lower }}"
+      email: "{{ item.email }}"
+      session_timeout_ms: 7200000
+      timezone: America/New_York
+      password: "{{ item.password }}"
+      roles: >-
+        {{
+          ['Reader'] +
+          (['Admin'] if item.position == 'System Administrator' else [])
+        }}
+      permissions: []
+    body_format: json
+    status_code: 201
+  when: item.department == "IT"
+  with_items: "{{ former_employees_data.users }}"

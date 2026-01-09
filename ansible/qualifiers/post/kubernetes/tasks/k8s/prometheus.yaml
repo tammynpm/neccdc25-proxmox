@@ -100,6 +100,7 @@
             requests:
               cpu: 50m
               memory: 128Mi
+    state: present
   tags:
     - services
     - prometheus
@@ -153,7 +154,7 @@
             namespace: infrastructure
             sectionName: https
         hostnames:
-          - "grafana.{{ hostvars[inventory_hostname]['team'] }}.placebo-pharma.com"
+          - "grafana.placebo-pharma.com"
         rules:
           - matches:
               - path:
@@ -184,7 +185,7 @@
             namespace: infrastructure
             sectionName: https
         hostnames:
-          - "prometheus.{{ hostvars[inventory_hostname]['team'] }}.placebo-pharma.com"
+          - "prometheus.placebo-pharma.com"
         rules:
           - matches:
               - path:

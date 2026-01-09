@@ -1,10 +1,15 @@
 #SPDX-License-Identifier: MIT-0
 ---
 # tasks file for bginfo
-- name: Copy CA Certificate to Windows CA
+- name: Check if we're restoring from backup
+  ansible.builtin.set_fact:
+    is_restore: "{{ ca_backup_source is defined and ca_backup_source | length > 0 }}"
+
+- name: Copy CA Certificate to Windows CA (if restoring from backup)
   win_copy:
     src: "{{ ca_backup_source }}" 
     dest: "{{ ca_backup_destination }}"
+  when: is_restore | bool
 
 - name: Ensure ADCS-Cert-Authority is installed
   win_feature:
@@ -18,12 +23,13 @@
     state: present
 
 - name: Run the ADCS install script
-  ansible.windows.win_powershell:
+  ansible.windows.win_powershell: 
     script: "{{ lookup('file', 'files/install_ca.ps1') }}"
-    error_action: stop
     parameters:
-      cert_file_password: "{{ ca_backup_password }}"
-      cert_file_path: "{{ ca_backup_destination }}"
+      cert_file_password: "{{ ca_backup_password | default('') }}"  
+      cert_file_path: "{{ ca_backup_destination if is_restore | bool else '' }}"
+      ca_common_name: "{{ ca_common_name | default('placebo-pharma-CA-01') }}"
+    error_action: stop 
   register: ca_result
 
 - debug: var=ca_result
@@ -33,6 +39,7 @@
   ansible.windows.win_file:
     path: "{{ ca_backup_destination }}"
     state: absent
+  when: is_restore | bool 
 
 - name: Enable Web enrollement
   ansible.windows.win_powershell:

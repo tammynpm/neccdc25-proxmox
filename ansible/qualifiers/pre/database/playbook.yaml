@@ -193,7 +193,7 @@
         file: "../../../shared/black_team/main.yaml"
       vars:
         black_team_password: example-password
-        black_team_pub_path: '../../../../documentation/black_team/black-team.pub'
+        black_team_pub_path: '../../../../documentation/black_team/blackteam.pub'
         root_groups: wheel
       tags:
         - black-team

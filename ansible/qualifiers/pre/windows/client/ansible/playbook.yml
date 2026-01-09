@@ -11,6 +11,25 @@
         state: present
         include_sub_features: true
         include_management_tools: true
+      ignore_errors: true #tammy
+
+    #tammy
+    - name: install RSAT AD tools on workstation
+      ansible.windows.win_shell:
+        Add-WindowsCapability -Online -Name RSAT.ActiveDirectory.DS-LDS.Tools~~~~0.0.1.0
+      #assuming you are Administrator
+      args:
+        executable: powershell
+      ignore_errors: true
+    
+    #tammy
+    - name: install GPMC on workstation
+      ansible.windows.win_shell:
+        Add-WindowsCapability -Online -Name RSAT.GroupPolicy.Management.Tools~~~~0.0.1.0
+      #assuming you are Administrator
+      args:
+        executable: powershell
+      ignore_errors: true
 
     - name: Ensure Chocolatey itself is installed, using community repo for the bootstrap
       win_chocolatey:

@@ -1,0 +1,121 @@
+---
+- name: check if log file exists #tammy
+  ansible.builtin.stat:
+    path: /var/log/graylog-server/server.log
+  register: log_file_stat
+  become: true
+
+- name: check graylog service status #tammy
+  ansible.builtin.command: systemctl status graylog-server
+  register: graylog_status
+  changed_when: false
+  failed_when: false
+  become: true
+
+- name: Extract Graylog credentials from log
+  block:
+    - name: Attempt to read and decode Graylog server log
+      ansible.builtin.slurp:
+        src: /var/log/graylog-server/server.log
+      register: graylog_log_output
+      become: true
+      when: log_file_stat.stat.exists
+      until: >
+        graylog_log_output is defined and 
+        graylog_log_output.get('content') is not none and 
+        (graylog_log_output.content | b64decode | regex_search("username '.*?'.*password '.*?'") is not none)
+      retries: 20
+      delay: 2
+      
+
+    - name: Decode Graylog server log content
+      ansible.builtin.set_fact:
+        graylog_log_content: "{{ graylog_log_output.content | b64decode }}"
+
+    - name: Extract Graylog username and password
+      ansible.builtin.set_fact:
+        graylog_username: "{{ graylog_log_content | regex_search(\"username '(.*?)'\", '\\1') }}"
+        graylog_password: "{{ graylog_log_content | regex_search(\"password '(.*?)'\", '\\1') }}"
+
+# Update list to be a string
+- name: Convert Graylog initial username to list
+  ansible.builtin.set_fact:
+    graylog_username: "{{ graylog_username[0] if graylog_username is iterable else graylog_username }}"
+    graylog_password: "{{ graylog_password[0] if graylog_password is iterable else graylog_password }}"
+
+
+# echo out the username and password
+- name: Debug Graylog initial username
+  ansible.builtin.debug:
+    msg:
+      - "Initial User: {{ graylog_username }}"
+      - "Initial Password: {{ graylog_password }}"
+
+
+- name: Define headers for Graylog API
+  ansible.builtin.set_fact:
+    headers:
+      Authorization: "Basic {{ (graylog_username + ':' + graylog_password) | b64encode }}"
+      X-Requested-By: "Ansible"
+      Content-Type: "application/json"
+
+- name: Setup CA
+  ansible.builtin.uri:
+    url: "{{ graylog_server_api_uri }}/ca/create"
+    method: POST
+    headers: "{{ headers }}"
+    body:
+      organization: "{{ CA_ORGANIZATION }}"
+    body_format: json
+    status_code:
+      - 201
+      - 204
+
+- name: Setup Renewal Policy
+  ansible.builtin.uri:
+    url: "{{ graylog_server_api_uri }}/renewal_policy"
+    method: POST
+    headers: "{{ headers }}"
+    body: "{{ RENEWAL_POLICY }}"
+    body_format: json
+    status_code:
+      - 201
+      - 204
+
+- name: Provision Certificates for Data Nodes
+  ansible.builtin.uri:
+    url: "{{ graylog_server_api_uri }}/generate"
+    method: POST
+    headers: "{{ headers }}"
+    body: {}
+    body_format: json
+    status_code: 204
+
+- name: Complete Setup
+  ansible.builtin.uri:
+    url: "{{ graylog_server_api_uri }}/status/finish-config"
+    method: POST
+    headers: "{{ headers }}"
+    body: {}
+    body_format: json
+    status_code:
+      - 200
+
+- name: Wait for API to be ready
+  ansible.builtin.uri:
+    url: "{{ graylog_server_api_uri }}"
+    method: GET
+    headers: "{{ headers }}"
+    status_code:
+      - 200
+      - 201
+      - 204
+  register: api_status
+  until: api_status.status == 200
+  retries: "{{ GRAYLOG_API_WAIT_RETRIES }}"
+  delay: "{{ GRAYLOG_API_WAIT_TIME }}"
+  failed_when: api_status.status != 200
+
+- name: Notify API is ready
+  ansible.builtin.debug:
+    msg: "API is available!"

@@ -1,0 +1,81 @@
+---
+- name: Check if MongoDB is installed
+  ansible.builtin.command:
+    cmd systemctl status mongod
+  register: mongodb_service_status
+  failed_when: false
+  changed_when: false
+  ignore_errors: true
+
+- name: Remove existing MongoDB repository configurations
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  with_items:
+    - /etc/apt/sources.list.d/mongodb-org-6.0.list
+    - /etc/apt/sources.list.d/mongodb-org-7.0.list
+  when: "'mongod.service' not in mongodb_service_status.stdout"
+  ignore_errors: yes
+  register: removed_repos
+
+- name: Remove existing MongoDB GPG keys
+  ansible.builtin.shell: |
+    rm -f /usr/share/keyrings/mongodb-*
+  args:
+    warn: false
+  when: "'mongod.service' not in mongodb_service_status.stdout"
+  ignore_errors: yes
+  register: removed_keys
+
+- name: Create keyrings directory if it doesn't exist
+  ansible.builtin.file:
+    path: /usr/share/keyrings
+    state: directory
+    mode: '0755'
+  when: "'mongod.service' not in mongodb_service_status.stdout"
+
+- name: Download MongoDB GPG key
+  ansible.builtin.get_url:
+    url: https://www.mongodb.org/static/pgp/server-7.0.asc
+    dest: /tmp/server-7.0.asc
+    mode: '0644'
+  when: "'mongod.service' not in mongodb_service_status.stdout"
+
+- name: Add MongoDB GPG key
+  ansible.builtin.command: >
+    gpg --dearmor -o /usr/share/keyrings/mongodb-server-7.0.gpg /tmp/server-7.0.asc
+  args:
+    creates: /usr/share/keyrings/mongodb-server-7.0.gpg
+  become: true
+  when: "'mongod.service' not in mongodb_service_status.stdout"
+
+- name: Add MongoDB repository
+  ansible.builtin.copy:
+    content: "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-7.0.gpg ] {{ mongodb_repo }}"
+    dest: /etc/apt/sources.list.d/mongodb-org-7.0.list
+    mode: '0644'
+  when: "'mongod.service' not in mongodb_service_status.stdout"
+  notify: Update apt cache
+
+- name: Install prerequisites
+  ansible.builtin.apt:
+    name:
+      - gnupg
+      - curl
+    update_cache: true
+    state: present
+  when: "'mongod.service' not in mongodb_service_status.stdout"
+
+- name: Install MongoDB
+  ansible.builtin.apt:
+    update_cache: true
+    name: mongodb-org
+    state: present
+  when: "'mongod.service' not in mongodb_service_status.stdout"
+
+- name: Enable and restart MongoDB service
+  ansible.builtin.systemd:
+    name: mongod
+    enabled: true
+    state: restarted
+  when: "'mongod.service' not in mongodb_service_status.stdout"

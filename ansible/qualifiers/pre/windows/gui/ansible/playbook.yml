@@ -11,6 +11,7 @@
         state: present
         include_sub_features: true
         include_management_tools: true
+      ignore_errors: true #tammy
 
     - name: Ensure Chocolatey itself is installed, using community repo for the bootstrap
       win_chocolatey:

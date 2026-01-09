@@ -4,11 +4,13 @@
   ansible.windows.win_file:
     path: "C:\\Temp"
     state: directory
+  become: false
 
 - name: Download Graylog Sidecar installer
   ansible.windows.win_get_url:
     url: "https://github.com/Graylog2/collector-sidecar/releases/download/1.5.0/graylog_sidecar_installer_1.5.0-1.exe"
     dest: "C:\\Temp\\graylog_sidecar_installer_1.5.0-1.exe"
+  become: false
 
 - name: Install Graylog sidecar
   ansible.windows.win_package:
@@ -19,6 +21,7 @@
       - -SERVERURL={{ SERVER_API_URL }}
       - -APITOKEN={{ SERVER_API_TOKEN }}
     state: present
+  become: false
 
 - name: Create Graylog Sidecar configuration file
   ansible.windows.win_template:
@@ -26,9 +29,11 @@
     dest: "C:\\Program Files\\Graylog\\sidecar\\sidecar.yml"
   notify:
     - Restart win-graylog-sidecar
+  become: false
 
 - name: Set service startup mode to auto and ensure it is started
   ansible.windows.win_service:
     name: graylog-sidecar
     start_mode: delayed
     state: started
+  become: false

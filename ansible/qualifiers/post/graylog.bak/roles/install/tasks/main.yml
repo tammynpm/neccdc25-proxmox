@@ -1,0 +1,52 @@
+---
+- name: Gather the package facts
+  ansible.builtin.package_facts:
+    manager: auto
+
+- name: Set all Graylog configuration facts
+  ansible.builtin.set_fact:
+    password_secret: "{{ graylog_password_secret }}"
+    http_bind_address: "{{ HTTP_BIND_ADDRESS }}"
+    http_publish_uri: "{{ HTTP_PUBLISH_URI }}"
+    http_external_uri: "{{ HTTP_EXTERNAL_URI }}"
+    message_journal_max_size: "{{ MESSAGE_JOURNAL_MAX_SIZE }}"
+    message_journal_max_age: "{{ MESSAGE_JOURNAL_MAX_AGE }}"
+    graylog_server_api_uri: "{{ SERVER_API_URL }}"
+
+- name: Install MongoDB, Graylog Data Node, and Graylog Server
+  when:
+    - graylog_install | default(false)
+    - ansible_facts['os_family'] == 'Debian'
+  block:  
+    - name: Install MongoDB
+      ansible.builtin.include_tasks:
+        file: install/mongodb.yml
+    - name: Install Opensearch
+      ansible.builtin.include_tasks:
+        file: install/opensearch.yml
+    - name: Setup Graylog node
+      ansible.builtin.include_tasks:
+        file: install/graylog_datanode.yml
+    - name: Install Graylog server
+      ansible.builtin.include_tasks:
+        file: install/graylog_server.yml
+
+- name: Run Configure Tasks
+  when:
+    - graylog_configure | default(false)
+    - ansible_facts['os_family'] == 'Debian'
+  block:
+    - name: Initialize Graylog
+      ansible.builtin.include_tasks:
+        file: configure/initial.yml
+    - name: Configure Graylog input
+      ansible.builtin.include_tasks:
+        file: configure/input.yml
+
+- name: Run Uninstall Tasks
+  ansible.builtin.include_tasks:
+    file: uninstall.yml
+  ignore_errors: true
+  when:
+    - graylog_uninstall | default(false)
+    - ansible_facts['os_family'] == 'Debian'

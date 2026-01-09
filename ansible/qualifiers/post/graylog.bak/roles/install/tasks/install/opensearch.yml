@@ -1,0 +1,92 @@
+---
+- name: install required packages
+  ansible.builtin.apt:
+    name: 
+      - lsb-release
+      - ca-certificates
+      - curl
+      - gnupg2
+    state: present
+
+- name: download opensearch repo key 
+  ansible.builtin.get_url: 
+    url: https://artifacts.opensearch.org/publickeys/opensearch.pgp
+    dest: /tmp/opensearch.gpg
+    mode: '0644'
+
+- name: dearmor opensearch signing key 
+  ansible.builtin.command:  
+    gpg --dearmor --batch --yes -o /usr/share/keyrings/opensearch-keyring /tmp/opensearch.gpg
+  args:
+    creates: /usr/share/keyrings/opensearch-keyring
+
+- name: add opensearch repo
+  ansible.builtin.apt_repository:
+    repo: "deb [signed-by=/usr/share/keyrings/opensearch-keyring] https://artifacts.opensearch.org/releases/bundle/opensearch/2.x/apt stable main"
+    state: present
+    filename: opensearch-2.x
+    update_cache: yes
+
+- name: install opensearch
+  ansible.builtin.apt:
+    name: "opensearch=2.14.*"
+    state: present
+    update_cache: yes
+    allow_downgrade: yes
+  environment:
+    OPENSEARCH_INITIAL_ADMIN_PASSWORD: "{{ opensearch_initial_admin_password }}"
+  register: opensearch_install
+  retries: 3
+  delay: 10
+  until: opensearch_install is success
+  notify: restart opensearch
+
+- name: Fix OpenSearch installation if needed
+  ansible.builtin.command: dpkg --configure -a
+  environment:
+    OPENSEARCH_INITIAL_ADMIN_PASSWORD: "{{ opensearch_initial_admin_password }}"
+  when: opensearch_install is failed
+  changed_when: false
+  register: dpkg_configure
+  notify: restart opensearch
+
+- name: configure opensearch
+  ansible.builtin.template:
+    src: opensearch.yml.j2
+    dest: /etc/opensearch/opensearch.yml
+    owner: opensearch
+    group: opensearch
+    mode: '0644'
+  notify: restart opensearch
+
+- name: configure JVM options
+  ansible.builtin.template:
+    src: jvm.options.j2
+    dest: /etc/opensearch/jvm.options.d/jvm.options
+    owner: opensearch
+    group: opensearch
+    mode: '0644'
+  notify: restart opensearch
+
+- name: Ensure OpenSearch service directory exists
+  ansible.builtin.file:
+    path: /etc/systemd/system/opensearch.service.d
+    state: directory
+    mode: '0755'
+  when: opensearch_install is changed or dpkg_configure is defined
+
+- name: configure opensearch service
+  ansible.builtin.template:
+    src: opensearch.service.j2
+    dest: /etc/systemd/system/opensearch.service.d/override.conf
+    owner: root
+    group: root
+    mode: '0644'
+  notify: restart opensearch
+
+- name: start opensearch service
+  ansible.builtin.service:
+    name: opensearch
+    state: started
+    enabled: true
+

@@ -3,6 +3,14 @@
 
 ---
 # https://artifacthub.io/packages/helm/traefik/traefik/
+- name: Add Traefik Helm repository #tammy 
+  become: true
+  become_user: ubuntu
+  kubernetes.core.helm_repository:
+    name: traefik
+    repo_url: https://traefik.github.io/charts/
+    state: present
+
 - name: Deploy Traefik
   become: true
   become_user: ubuntu
@@ -58,6 +66,7 @@
         - key: "node-role.kubernetes.io/control-plane"
           operator: "Exists"
           effect: "NoSchedule"
+    state: present
   tags:
     - services
     - traefik
@@ -78,8 +87,8 @@
         tls.crt: "{{ lookup('file', tls_cert_path) | b64encode }}"
         tls.key: "{{ lookup('file', tls_key_path) | b64encode }}"
   vars:
-    tls_cert_path: "../../../../documentation/blue_team/qualifiers/team_{{ team_number }}/certificates/fullchain.crt"
-    tls_key_path: "../../../../documentation/blue_team/qualifiers/team_{{ team_number }}/certificates/private.key"
+    tls_cert_path: "../../../../documentation/blue_team/qualifiers/certificates/fullchain.crt"
+    tls_key_path: "../../../../documentation/blue_team/qualifiers/certificates/private.key"
   tags:
     - services
     - traefik

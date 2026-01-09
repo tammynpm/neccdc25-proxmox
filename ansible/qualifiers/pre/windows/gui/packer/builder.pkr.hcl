@@ -1,7 +1,7 @@
 build {
   name = "windows-builder"
 
-  sources = ["source.amazon-ebs.firstrun-windows"]
+  sources = ["source.qemu.proxmox-windows"]
 
   provisioner "powershell" {
     scripts = [
@@ -24,18 +24,18 @@ build {
     ]
   }
 
+
   provisioner "file" {
     content = templatefile("${path.root}/templates/agent-config.pkrtpl.hcl", {
       windows_username = var.windows_username,
       windows_password = var.windows_password
     })
-    destination = "C:\\ProgramData\\Amazon\\EC2Launch\\config\\agent-config.yml"
+    destination = "C:\\agent-config.yml"
   }
 
   provisioner "powershell" {
     inline = [
-      "& 'C:/Program Files/Amazon/EC2Launch/ec2launch' reset --clean",
-      "& 'C:/Program Files/Amazon/EC2Launch/ec2launch' sysprep --shutdown --clean",
+      "Start-Process -Wait -FilePath 'C:\\Windows\\System32\\Sysprep\\Sysprep.exe' -ArgumentList '/oobe /generalize /shutdown'"
     ]
   }
 }

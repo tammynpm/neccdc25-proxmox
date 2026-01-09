@@ -12,7 +12,13 @@
 
 - name: Install docker
   ansible.builtin.apt:
-    name: docker.io
+    update_cache: true
+    name: #tammy
+    - docker-ce
+    - docker-ce-cli
+    - containerd.io
+    - docker-buildx-plugin
+    - docker-compose-plugin
     state: present
 
 - name: Configure Docker daemon

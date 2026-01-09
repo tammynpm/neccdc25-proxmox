@@ -3,17 +3,77 @@
   hosts: nginx
   become: true
   vars:
-    team_number: "{{ hostvars[inventory_hostname]['team'] }}"
-    team_base_cidr: "{{ team_number | int * 4 }}"
+    cert_dir: "{{ playbook_dir }}/../../../../documentation/blue_team/qualifiers/certificates"
+    cert_local_path: "{{ cert_dir }}/fullchain.crt"
+    key_local_path: "{{ cert_dir }}/private.key"
   tasks:
     - name: Update password
       ansible.builtin.user:
         name: rocky
-        password: "{{ 'example-password' | password_hash('sha512') }}"
+        password: "{{ 'rocky' | password_hash('sha512') }}"
+
+    - name: Create SSL directory
+      ansible.builtin.file:
+        path: "{{ playbook_dir }}/../../../../documentation/blue_team/qualifiers/certificates"
+        state: directory
+        mode: '0755'
+        recurse: yes
+      delegate_to: localhost
+      become: false
+      run_once: true
+
+    - name: Check if certificate exists
+      ansible.builtin.stat:
+        path: "{{ cert_local_path }}"
+      delegate_to: localhost
+      become: false
+      register: cert_stat
+      ignore_errors: true
+
+    - name: create private key 
+      community.crypto.openssl_privatekey:
+        path: "{{ key_local_path }}"
+        size: 2048
+        mode: '0600'
+      delegate_to: localhost
+      run_once: true
+      become: false  # Don't use sudo for local certificate generation
+
+    - name: create CSR with subject + SAN + usages 
+      community.crypto.openssl_csr_pipe:
+        privatekey_path: "{{ key_local_path }}"
+        subject:
+          CN: "nginx.placebo-pharma.com"
+        subject_alt_name:
+        - "DNS:nginx.placebo-pharma.com"
+        key_usage:
+        - digitalSignature
+        - keyEncipherment
+        extended_key_usage:
+        - serverAuth
+        basic_constraints:
+        - "CA:FALSE"
+        basic_constraints_critical: true
+      register: CSR
+      delegate_to: localhost
+      become: false
+      run_once: true
+    
+    - name: Generate self-signed certificate from CSR
+      community.crypto.x509_certificate:
+        path: "{{ cert_local_path }}"
+        privatekey_path: "{{ key_local_path }}"
+        csr_content: "{{ CSR.csr }}"
+        provider: selfsigned
+        selfsigned_digest: sha256
+        selfsigned_not_after: "+3650d"
+      delegate_to: localhost
+      become: false
+      run_once: true
 
     - name: Copy TLS certificate
       ansible.builtin.copy:
-        src: "../../../../documentation/blue_team/qualifiers/team_{{ team_number }}/certificates/fullchain.crt"
+        src: "{{ cert_local_path }}"
         dest: /etc/ssl/certs/fullchain.crt
         owner: root
         group: root
@@ -21,7 +81,7 @@
 
     - name: Copy TLS key
       ansible.builtin.copy:
-        src: "../../../../documentation/blue_team/qualifiers/team_{{ team_number }}/certificates/private.key"
+        src: "{{ key_local_path }}"
         dest: /etc/ssl/certs/private.key
         owner: root
         group: root
@@ -34,9 +94,9 @@
         owner: root
         group: root
         mode: '0644'
-      vars:
-        octet_a: "{{ team_base_cidr | int + 2 }}"
-        octet_b: "{{ team_base_cidr | int + 3 }}"
+      # vars:
+      #   octet_a: "{{ team_base_cidr | int + 2 }}"
+      #   octet_b: "{{ team_base_cidr | int + 3 }}"
       notify: Reload nginx
 
     - name: Copy static website nginx config
@@ -47,7 +107,7 @@
         group: root
         mode: '0644'
       vars:
-        nginx_domain: "{{ team_number }}.{{ domain }}"
+        nginx_domain: "nginx.placebo-pharma.com"
       notify: Reload nginx
 
   handlers:

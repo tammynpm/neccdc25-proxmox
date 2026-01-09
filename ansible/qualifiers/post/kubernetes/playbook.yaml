@@ -12,7 +12,7 @@
     - name: Update Ubuntu password
       ansible.builtin.user:
         name: ubuntu
-        password: "{{ 'example-password' | password_hash('sha512') }}"
+        password: "{{ 'ubuntu' | password_hash('sha512') }}"
 
 
 - name: K8s base
@@ -47,24 +47,98 @@
   hosts: worker_nodes
   become: true
   vars:
-    ctrl_plane_ip: "10.0.{{ (hostvars[inventory_hostname]['team'] | int * 4) + 2 }}.255"
+    ctrl_plane_ip: "{{ groups['ctrl_plane'][0] }}"
+    force_join: false
   tasks:
+    - name: verify kubelet config was created
+      ansible.builtin.stat:
+        path: /etc/kubernetes/kubelet.conf
+      register: kubelet_conf
+      tags:
+        - join
+
+    - name: check if node is actually in cluster
+      ansible.builtin.command: kubectl get node {{inventory_hostname}} -o name
+      environment:
+        KUBECONFIG: /etc/kubernetes/admin.conf
+      register: node_status
+      delegate_to: "{{ctrl_plane_ip}}"
+      failed_when: false
+      changed_when: false
+      tags:
+        - join
+      
+    - name: Determine if rejoin is needed
+      ansible.builtin.set_fact:
+        needs_join: "{{ (force_join | bool) or (not kubelet_conf.stat.exists) or (node_status.rc != 0) }}"
+      tags: [join]
+
+    - name: Clean up before rejoin
+      block:
+        - name: Stop kubelet
+          ansible.builtin.systemd:
+            name: kubelet
+            state: stopped
+          ignore_errors: true
+
+        - name: Reset kubeadm
+          ansible.builtin.command: kubeadm reset -f --cri-socket unix:///run/containerd/containerd.sock
+          register: reset_result
+          failed_when: false
+          changed_when: reset_result.rc == 0
+
+        - name: Remove kubernetes directories
+          ansible.builtin.file:
+            path: "{{ item }}"
+            state: absent
+          loop:
+            - /etc/kubernetes/
+            - /var/lib/kubelet/
+            - /var/lib/etcd/
+            - /etc/cni/net.d/
+            - /var/lib/cni/
+          ignore_errors: true
+        - name: Kill anything still on 10250
+          ansible.builtin.shell: |
+            if ss -lntp | grep -q ':10250'; then
+              fuser -k 10250/tcp || true
+            fi
+          args:
+            executable: /bin/bash
+          changed_when: false
+      when: needs_join
+      tags: [join]
+
     - name: Read kubeadm config file
       ansible.builtin.slurp:
         src: /etc/kubernetes/kubeadm-config.yaml
       register: kubeadm_config
+      when: needs_join
       tags:
         - join
 
     - name: Extract CRI socket value
       ansible.builtin.set_fact:
         cri_socket: "{{ kubeadm_config['content'] | b64decode | regex_search('criSocket:\\s*(.+)', '\\1') | first }}"
+      when: needs_join
       tags:
         - join
 
+    - name: Install required packages on worker nodes #tammy
+      ansible.builtin.apt:
+        name:
+          - conntrack
+          - socat
+          - ebtables
+          - ethtool
+        update_cache: yes
+      tags:
+        - join
+        - packages
+
     - name: TCP port 6443 on master is reachable from worker
       ansible.builtin.wait_for:
-        host: "{{ hostvars[ctrl_plane_ip]['ansible_default_ipv4']['address'] }}"
+        host: "{{ ctrl_plane_ip }}"
         port: 6443
         timeout: 1
       tags:
@@ -72,13 +146,47 @@
 
     - name: Join cluster
       ansible.builtin.shell:
-        cmd: "{{ hostvars[ctrl_plane_ip].join_command }} --cri-socket {{ cri_socket }} >> node_joined.log"
-      args:
-        chdir: /etc/kubernetes
-        creates: node_joined.log
+        cmd: "{{ hostvars[groups['ctrl_plane'][0]]['join_command'] }} --cri-socket {{ cri_socket }}"
+      register: join_result
+      when: needs_join
+      tags: 
+        - join
+
+    - name: save join log
+      ansible.builtin.copy:
+        content: "{{join_result.stdout}}"
+        dest: /etc/kubernetes/node_joined.log
+        mode: '0644'
+      when:
+        - needs_join
+        - join_result is defined
+        - join_result.rc == 0
       tags:
         - join
 
+    - name: wait for kubelet to be ready
+      ansible.builtin.systemd:
+        name: kubelet
+        state: started
+        enabled: yes
+      when: needs_join
+      tags:
+        - join
+
+    - name: wait for node to appear in cluster
+      become: true
+      ansible.builtin.command: kubectl get node {{inventory_hostname}} -o name
+      environment: 
+        KUBECONFIG: /etc/kubernetes/admin.conf
+      register: node_check
+      delegate_to: "{{groups['ctrl_plane'][0]}}"
+      when: needs_join
+      retries: 5
+      delay: 5
+      until: node_check.rc==0
+      changed_when: false
+      tags:
+        - join
 
 - name: Kubernetes deployment
   hosts: ctrl_plane

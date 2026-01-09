@@ -1,0 +1,77 @@
+---
+
+- name: Define headers for Graylog API
+  ansible.builtin.set_fact:
+    headers:
+      Authorization: "Basic {{ (graylog_admin_user + ':' + graylog_admin_password) | b64encode }}"
+      X-Requested-By: "Ansible"
+      Content-Type: "application/json"
+
+- name: Wait for API to be ready
+  ansible.builtin.uri:
+    url: "{{ graylog_server_api_uri }}"
+    method: GET
+    headers: "{{ headers }}"
+    status_code:
+      - 200
+      - 201
+      - 204
+  register: api_status
+  until: api_status.status == 200
+  retries: "{{ GRAYLOG_API_WAIT_RETRIES }}"
+  delay: "{{ GRAYLOG_API_WAIT_TIME }}"
+  failed_when: api_status.status != 200
+
+- name: Fetch existing inputs from Graylog
+  ansible.builtin.uri:
+    url: "{{ graylog_server_api_uri }}/system/inputs"
+    method: GET
+    headers: "{{ headers }}"
+    status_code: 200
+  register: existing_inputs_response
+
+- name: Check if Beats input already exists
+  ansible.builtin.set_fact:
+    beats_input_exists: "{{ existing_inputs_response.json.inputs | selectattr('title', 'equalto', 'Beats Input') | list | length > 0 }}"
+
+- name: Skip creation if Beats input exists
+  ansible.builtin.debug:
+    msg: "Beats input already exists, skipping creation."
+  when: beats_input_exists
+
+- name: Define payload for Beats input
+  ansible.builtin.set_fact:
+    beats_payload:
+      title: "Beats Input"
+      type: "org.graylog.plugins.beats.Beats2Input"
+      configuration:
+        bind_address: "0.0.0.0"
+        port: 5044
+        recv_buffer_size: 1048576
+        tcp_keepalive: true
+        tls_cert_file: ""
+        tls_key_file: ""
+        tls_enable: false
+      global: true
+      node: null
+  when: not beats_input_exists
+
+- name: Create Beats input in Graylog
+  ansible.builtin.uri:
+    url: "{{ graylog_server_api_uri }}/system/inputs"
+    method: POST
+    headers: "{{ headers }}"
+    body: "{{ beats_payload | to_json }}"
+    status_code: 201
+  register: create_input_response
+  when: not beats_input_exists
+
+- name: Check response for Beats input creation
+  ansible.builtin.debug:
+    msg: "Beats input created successfully."
+  when: not beats_input_exists and create_input_response.status == 201
+
+- name: Fail if Beats input creation fails
+  ansible.builtin.fail:
+    msg: "Failed to create Beats input: {{ create_input_response.status }} {{ create_input_response.content }}"
+  when: not beats_input_exists and create_input_response.status != 201
