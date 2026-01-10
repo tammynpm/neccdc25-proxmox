@@ -16,6 +16,9 @@
     - name: Ensure Chocolatey itself is installed, using community repo for the bootstrap
       win_chocolatey:
         name: chocolatey
+        version: '1.4.0'
+        state: present
+        force: yes
 
     - name: Install microsoft-edge-insider
       chocolatey.chocolatey.win_chocolatey:

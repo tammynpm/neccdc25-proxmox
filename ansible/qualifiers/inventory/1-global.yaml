@@ -92,9 +92,9 @@ all:
     blackteam_password: 4f5UfRlspl&et*&us!
     cluster_password: ubuntu
     team_address:
-      # firewall_public: "10.255.{{ team }}.254"
-      # firewall_private: "10.0.{{ (team * 4) + 3 }}.254"
-      # firewall_dmz: "10.0.{{ (team * 4) }}.254"
+      # firewall_public: "10.37.31.254"
+      # firewall_private: "10.37.33.254"
+      # firewall_dmz: "10.37.32.254"
       ctrl_plane: "10.37.33.23"
       database: "10.37.33.15"
       graylog: "10.37.32.10"
@@ -102,6 +102,6 @@ all:
       node_1: "10.37.33.19"
       node_2: "10.37.33.18"
       node_3: "10.37.33.20"
-      windows_ca: "10.37.33.21"
-      windows_dc: "10.37.33.5"
-      windows_workstation: "10.37.33.4"
+      windows_ca: "10.37.32.14"
+      windows_dc: "10.37.33.24"
+      windows_workstation: "10.37.33.26"

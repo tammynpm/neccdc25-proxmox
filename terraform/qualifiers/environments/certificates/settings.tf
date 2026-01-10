@@ -2,7 +2,7 @@ terraform {
   required_version = "~> 1.9.0"
 
   backend "s3" {
-    bucket = "neccdc-2025-terraform"
+    bucket = "neccdc25-bucket-terraform"
     key    = "qualifiers/certificates/terraform.tfstate"
     region = "us-east-2"
 

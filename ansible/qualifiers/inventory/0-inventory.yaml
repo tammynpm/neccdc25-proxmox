@@ -14,7 +14,7 @@ database:
     hostname: database
 firewall:
   hosts:
-    10.37.31.2
+    10.37.31.4
   vars:
     hostname: firewall
 graylog:
@@ -56,24 +56,24 @@ node_3:
     hostname: node-3
 windows_ca:
   hosts:
-    10.37.32.8:
+    10.37.32.14:
       ansible_user: Administrator
       ansible_become_password: "Thunderpoint789*"
   vars:
     hostname: ca-01
 windows_dc:
   hosts:
-    10.37.33.5:
+    10.37.33.24:
       ansible_user: Administrator
   vars:
     hostname: dc-01
 windows_workstation:
   hosts:
-    10.37.33.4:
-      ansible_user: win01
+    10.37.33.26:
+      ansible_user: Administrator
       ansible_become_password: "Thunderpoint789*"
   vars:
-    hostname: win-01
+    hostname: win01
 
 # scorestack:
 #   hosts: 
