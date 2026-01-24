@@ -34,21 +34,120 @@
     - name: Ensure Chocolatey itself is installed, using community repo for the bootstrap
       win_chocolatey:
         name: chocolatey
+        version: '1.4.0'
 
-    - name: Install Chocolatey packages
+    - name: Clean Chocolatey temp cache before installs #tammy
+      ansible.windows.win_shell: |
+        $paths = @(
+          "$env:TEMP\chocolatey",
+          "C:\Users\Administrator\AppData\Local\Temp\chocolatey"
+        )
+        foreach ($path in $paths) {
+          if (Test-Path $path) { Remove-Item -Path $path -Recurse -Force }
+        }
+      args:
+        executable: powershell
+
+    - name: Install Chocolatey packages (batched)
       chocolatey.chocolatey.win_chocolatey:
-        name:
-          - googlechrome
-          - firefox
-          - 7zip
-          - vlc
-          - notepadplusplus
-          - winscp
-          - git
-          - python
-          - microsoft-edge-insider
-          - r.studio
-          - putty
+        name: "{{ item }}"
+        state: present
+      loop: "{{ choco_batches }}"
+      register: choco_batch_result
+      retries: 5
+      delay: 60
+      until: choco_batch_result is succeeded
+      failed_when: false
+      vars:
+        choco_batches:
+          - [firefox, 7zip, vlc]
+          - [notepadplusplus, winscp, git]
+          - [python, microsoft-edge-insider]
+          - [r.studio, putty]
+
+    - name: Check if Chocolatey had failures
+      ansible.builtin.set_fact:
+        choco_failed: >-
+          {{ (choco_batch_result.results
+          | selectattr('failed', 'defined')
+          | selectattr('failed')
+          | list
+          | length) > 0 }}
+      when: choco_batch_result is defined
+
+    - name: Check for winget
+      ansible.windows.win_shell: |
+        if (Get-Command winget -ErrorAction SilentlyContinue) { "present" }
+      register: winget_check
+      changed_when: false
+      when: choco_failed | default(false)
+
+    - name: Install winget (App Installer)
+      ansible.windows.win_shell: |
+        [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+        $deps = @(
+          @{ Uri = "https://aka.ms/Microsoft.VCLibs.x64.14.00.Desktop.appx"; File = "$env:TEMP\Microsoft.VCLibs.x64.appx" },
+          @{ Uri = "https://github.com/microsoft/microsoft-ui-xaml/releases/download/v2.7.3/Microsoft.UI.Xaml.2.7.x64.appx"; File = "$env:TEMP\Microsoft.UI.Xaml.2.7.x64.appx" }
+        )
+        foreach ($dep in $deps) {
+          Invoke-WebRequest -Uri $dep.Uri -OutFile $dep.File
+          Add-AppxPackage -Path $dep.File
+        }
+        $bundleUri = "https://github.com/microsoft/winget-cli/releases/latest/download/Microsoft.DesktopAppInstaller_8wekyb3d8bbwe.msixbundle"
+        $bundleFile = "$env:TEMP\Microsoft.DesktopAppInstaller.msixbundle"
+        Invoke-WebRequest -Uri $bundleUri -OutFile $bundleFile
+        Add-AppxPackage -Path $bundleFile
+      when:
+        - choco_failed | default(false)
+        - winget_check.stdout | trim == ""
+
+    - name: Update winget sources
+      ansible.windows.win_shell: |
+        winget source update --accept-source-agreements
+      when: choco_failed | default(false)
+
+    - name: Install packages with winget (fallback)
+      ansible.windows.win_shell: |
+        winget install --id {{ item }} -e --accept-source-agreements --accept-package-agreements --silent
+      loop:
+        - Mozilla.Firefox
+        - 7zip.7zip
+        - VideoLAN.VLC
+        - Notepad++.Notepad++
+        - WinSCP.WinSCP
+        - Git.Git
+        - Python.Python.3.11
+        - Microsoft.Edge.Dev
+        - RStudio.RStudio
+        - PuTTY.PuTTY
+      register: winget_install_result
+      retries: 3
+      delay: 60
+      until: winget_install_result.rc == 0
+      when: choco_failed | default(false)
+
+    - name: Install Google Chrome (ignore checksums)
+      chocolatey.chocolatey.win_chocolatey:
+        name: googlechrome
+        state: present
+        ignore_checksums: yes
+      register: choco_chrome_result
+      retries: 5
+      delay: 60
+      until: choco_chrome_result is succeeded
+      failed_when: false
+
+    - name: Install Google Chrome with winget (fallback)
+      ansible.windows.win_shell: |
+        winget install --id Google.Chrome -e --accept-source-agreements --accept-package-agreements --silent
+      register: winget_chrome_result
+      retries: 3
+      delay: 60
+      until: winget_chrome_result.rc == 0
+      when:
+        - choco_chrome_result is defined
+        - choco_chrome_result.failed | default(false)
+
 
     - name: Set OEM layout registry key
       ansible.windows.win_regedit:
@@ -72,13 +171,14 @@
       ansible.windows.win_powershell:
         script: "{{ lookup('ansible.builtin.file', 'files/desktop.ps1') }}"
 
-    - name: Install openssh
-      win_chocolatey:
-        name: openssh
-        version: '9.2.2-beta1'
-        package_params: /SSHServerFeature
-        state: present
-        allow_prerelease: yes
+    - name: Install OpenSSH Server (Windows capability) #tammy, avoid chocolatey
+      ansible.windows.win_shell:
+        Add-WindowsCapability -Online -Name OpenSSH.Server~~~~0.0.1.0
+      args:
+        executable: powershell
+      become: yes
+      become_method: runas
+      become_user: Administrator
 
     - name: Set the default shell to PowerShell
       win_regedit:

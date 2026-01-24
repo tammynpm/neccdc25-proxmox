@@ -1,10 +1,10 @@
 #TODO: #31 Cleanup copied files on DC & Clear logs of powershell and ansible
 ---
 - name: Automated Setup of Active Directory Users and Groups
-  hosts: windows_dc
+  hosts: windows_dc3
   gather_facts: false
   vars:
-    ansible_user: "administrator@{{ adserver_domain }}"
+    ansible_user: "administrator@{{ adserver_domain3 }}"
   vars_files:
     - "../../team_common.yaml"
 
@@ -38,6 +38,6 @@
         name: "{{ item.key | replace('_','-') }}"
         type: A
         value: "{{ item.value }}"
-        zone: "{{ adserver_domain }}"
+        zone: "{{ adserver_domain3 }}"
       loop: "{{ team_address | dict2items }}"
       when: item.key is not search('firewall') and item.key is not search('windows')

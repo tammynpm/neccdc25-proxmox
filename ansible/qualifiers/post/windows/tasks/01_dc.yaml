@@ -1,34 +1,115 @@
 ---
 - name: Domain creation
-  hosts: "{{ ansible_limit | default('windows_dc') }}"
+  hosts: windows_dc3
   gather_facts: true
   gather_subset: "!all,system"
   vars_files:
     - "../../team_common.yaml"
 
   tasks:
-    - name: Include AWS SAC Role
-      ansible.builtin.include_role:
-        name: aws.sac
+    # - name: Include AWS SAC Role
+    #   ansible.builtin.include_role:
+    #     name: aws.sac
 
     - name: Include Base Windows Role
       ansible.builtin.include_role:
         name: base_win
       vars:
         set_hostname: "{{ hostname }}"
-        dns_servers: "{{ team_address.windows_dc }}"
+        dns_servers: "{{ team_address.windows_dc3 }}"
         ntp_resync: true
 
-    - name: Establish New Active Directory Domain
-      microsoft.ad.domain:
-        dns_domain_name: "{{ adserver_domain }}"
-        safe_mode_password: "{{ ansible_password }}"
-        reboot: false
-      register: domain_create
+    - name: Install AD DS and DNS roles
+      ansible.windows.win_feature:
+        name:
+          - AD-Domain-Services
+          - DNS
+        state: present
+        include_management_tools: true
+      register: addsw_feature
 
-    - name: Reboot host if install requires it
+    # - name: Establish New Active Directory Domain
+    #   ansible.windows.win_powershell:
+    #     script: |
+    #       param(
+    #         [string]$DomainName,
+    #         [string]$NetbiosName,
+    #         [string]$SafeModePassword
+    #       )
+
+    #       try {
+    #         Get-ADForest -Identity $DomainName -ErrorAction Stop | Out-Null
+    #         "ALREADY_PRESENT"
+    #         return
+    #       } catch {
+    #       }
+
+    #       $secure = ConvertTo-SecureString $SafeModePassword -AsPlainText -Force
+    #       Install-ADDSForest -DomainName $DomainName -DomainNetbiosName $NetbiosName -SafeModeAdministratorPassword $secure -NoRebootOnCompletion -Force
+    #       "CREATED"
+    #     parameters:
+    #       DomainName: "{{ adserver_domain }}"
+    #       NetbiosName: "{{ netbios }}"
+    #       SafeModePassword: "{{ ansible_password }}"
+    #   register: domain_create
+    #   changed_when: domain_create.output is defined and ('CREATED' in domain_create.output)
+
+    - name: Establish New Active Directory Domain
+      ansible.windows.win_powershell:
+        script: |
+          param(
+            [string]$DomainName,
+            [string]$NetbiosName,
+            [string]$SafeModePassword
+          )
+
+          try {
+            Get-ADForest -Identity $DomainName -ErrorAction Stop | Out-Null
+            "ALREADY_PRESENT"
+            return
+          } catch {
+          }
+
+          Import-Module ADDSDeployment -ErrorAction Stop
+          $secure = ConvertTo-SecureString $SafeModePassword -AsPlainText -Force
+          $params = @{
+            DomainName = $DomainName
+            SafeModeAdministratorPassword = $secure
+            InstallDNS = $true
+            NoRebootOnCompletion = $true
+            Force = $true
+          }
+          if ((Get-Command Install-ADDSForest).Parameters.ContainsKey('DomainNetbiosName')) {
+            $params.DomainNetbiosName = $NetbiosName
+          }
+          Install-ADDSForest @params
+          "CREATED"
+        parameters:
+          DomainName: "{{ adserver_domain3 }}"
+          NetbiosName: "PLACEBO-PHARMA3"
+          SafeModePassword: "{{ ansible_password }}"
+      register: domain_create
+      changed_when: domain_create.output is defined and ('CREATED' in domain_create.output)
+
+    - name: Reboot after domain creation
       ansible.windows.win_reboot:
-      when: domain_create.reboot_required
+      when: domain_create.output is defined and ('CREATED' in domain_create.output)
+
+    - name: Wait for DC to come back
+      ansible.builtin.wait_for_connection:
+        delay: 10
+        timeout: 1200
+      when: domain_create.output is defined and ('CREATED' in domain_create.output)
+
+    - name: Ensure Active Directory Web Services is running #tammy
+      ansible.windows.win_service:
+        name: ADWS
+        start_mode: auto
+        state: started
+      register: adws_service
+      retries: 20
+      delay: 15
+      until: adws_service.state == "running"
 
     - name: Create black-team user
       microsoft.ad.user:
@@ -38,7 +119,7 @@
         display_name: Black Team
         description: DO NOT TOUCH THIS ACCOUNT
         sam_account_name: black-team
-        upn: "black-team@{{ adserver_domain }}"
+        upn: "black-team@{{ adserver_domain3 }}"
         password: "{{ blackteam_password }}"
         groups:
           set:
@@ -59,7 +140,7 @@
         display_name: SSM User
         description: DO NOT TOUCH THIS ACCOUNT
         sam_account_name: ssm-user
-        upn: "ssm-user@{{ adserver_domain }}"
+        upn: "ssm-user@{{ adserver_domain3 }}"
         password: "{{ blackteam_password }}"
         groups:
           set:

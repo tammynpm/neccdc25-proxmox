@@ -1,10 +1,10 @@
 #TODO: #31 Cleanup copied files on DC & Clear logs of powershell and ansible
 ---
 - name: Automated Setup of Active Directory Users and Groups
-  hosts: "{{ ansible_limit | default('windows') }}"
+  hosts: windows3
   gather_facts: false
   vars:
-    ansible_user: "administrator@{{ adserver_domain }}"
+    ansible_user: "administrator@{{ adserver_domain3 }}"
   vars_files:
     - "../../team_common.yaml"
 
@@ -14,28 +14,28 @@
         name: dns.forwarder
       vars:
         dns_forwarders: "{{ public_dns_forwarders }}"
-      when: "'dc-01' in hostname or 'ca-01' in hostname"
+      when: "'dc-03' in hostname or 'ca-03' in hostname"
 
     - name: Set DC Client DNS Servers
       ansible.windows.win_dns_client:
         adapter_names: "*"
         dns_servers:
-          - "{{ team_address.windows_dc }}"
-          - "{{ team_address.windows_ca }}"
-      when: "'dc-01' in hostname"
+          - "{{ team_address.windows_dc3 }}"
+          - "{{ team_address.windows_ca3 }}"
+      when: "'dc-03' in hostname"
 
     - name: Set CA Client DNS Servers
       ansible.windows.win_dns_client:
         adapter_names: "*"
         dns_servers:
-          - "{{ team_address.windows_ca }}"
-          - "{{ team_address.windows_dc }}"
-      when: "'ca-01' in hostname"
+          - "{{ team_address.windows_ca3 }}"
+          - "{{ team_address.windows_dc3 }}"
+      when: "'ca-03' in hostname"
 
     - name: Set Workstation Client DNS Servers
       ansible.windows.win_dns_client:
         adapter_names: "*"
         dns_servers:
-          - "{{ team_address.windows_dc }}"
-          - "{{ team_address.windows_ca }}"
-      when: "'win-01' in hostname"
+          - "{{ team_address.windows_dc3 }}"
+          - "{{ team_address.windows_ca3 }}"
+      when: "'win-03' in hostname"

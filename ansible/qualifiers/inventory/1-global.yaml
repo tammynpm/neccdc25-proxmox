@@ -9,7 +9,6 @@ cluster:
     node_3:
   vars:
     ansible_user: ubuntu
-    ansible_become_password: "{{ cluster_password}}"
 
 worker_nodes:
   children:
@@ -83,11 +82,63 @@ windows_clients:
     windows_ca:
     windows_workstation:
 
+windows_clients2:
+  children:
+    windows_ca2:
+    windows_workstation2:
+
+windows2:
+  children:
+    windows_ca2:
+    windows_dc2:
+    windows_workstation2:
+  vars:
+    adserver_domain: placebo-pharma2.local
+    netbios: "PLACEBO-PHARMA2"
+    ansible_user: Administrator
+    ansible_password: "{{ adserver_password }}"
+    ansible_connection: winrm
+    ansible_winrm_transport: ntlm
+    ansible_winrm_server_cert_validation: ignore
+    ansible_winrm_scheme: http #tammy
+    ansible_winrm_port: 5985 #tammy
+    ntp_servers: "0.pool.ntp.org 1.pool.ntp.org 2.pool.ntp.org"
+    public_dns_forwarders:
+      - "8.8.8.8"
+      - "1.1.1.1"
+
+windows_clients3:
+  children:
+    windows_ca3:
+    windows_workstation3:
+
+windows3:
+  children:
+    windows_ca3:
+    windows_dc3:
+    windows_workstation3:
+  vars:
+    adserver_domain: placebo-pharma3.local
+    netbios: "PLACEBO-PHARMA3"
+    ansible_user: Administrator
+    ansible_password: "{{ adserver_password }}"
+    ansible_connection: winrm
+    ansible_winrm_transport: ntlm
+    ansible_winrm_server_cert_validation: ignore
+    ansible_winrm_scheme: http #tammy
+    ansible_winrm_port: 5985 #tammy
+    ntp_servers: "0.pool.ntp.org 1.pool.ntp.org 2.pool.ntp.org"
+    public_dns_forwarders:
+      - "8.8.8.8"
+      - "1.1.1.1"
+
 all:
   vars:
     team: 2
     domain: placebo-pharma.com
     adserver_domain: placebo-pharma.local
+    adserver_domain2: placebo-pharma2.local
+    adserver_domain3: placebo-pharma3.local
     adserver_password: Thunderpoint789*
     blackteam_password: 4f5UfRlspl&et*&us!
     cluster_password: ubuntu
@@ -95,7 +146,7 @@ all:
       # firewall_public: "10.37.31.254"
       # firewall_private: "10.37.33.254"
       # firewall_dmz: "10.37.32.254"
-      ctrl_plane: "10.37.33.23"
+      ctrl_plane: "10.37.33.27"
       database: "10.37.33.15"
       graylog: "10.37.32.10"
       nginx: "10.37.32.4"
@@ -105,3 +156,9 @@ all:
       windows_ca: "10.37.32.14"
       windows_dc: "10.37.33.24"
       windows_workstation: "10.37.33.26"
+      windows_ca2: "10.37.32.15"
+      windows_dc2: "10.37.33.33"
+      windows_workstation2: "10.37.33.36"
+      windows_ca3: "10.37.32.16"
+      windows_dc3: "10.37.33.39"
+      windows_workstation3: "10.37.33.38"

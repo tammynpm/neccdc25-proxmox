@@ -9,7 +9,7 @@
         update_cache: yes
     - name: download the binary
       ansible.builtin.get_url:
-        url: https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-4
+        url: https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
         dest: /tmp/get_helm.sh
         mode: '0755'
     - name: execute the binary
@@ -58,21 +58,21 @@
 
 # - name: Install Helm diff plugin
 #   become: true
-#   become_user: ctrlplane
+#   become_user: ubuntu
 #   kubernetes.core.helm_plugin:
 #     plugin_path: https://github.com/databus23/helm-diff
 #     state: present
 
 - name: List helm plugins 
   become: true
-  become_user: ctrlplane
+  become_user: ubuntu
   ansible.builtin.command: /usr/local/bin/helm plugin list
   register: helm_plugins
   changed_when: false
     
 - name: Install helm-diff plugin (skip verification)
   become: true
-  become_user: ctrlplane
+  become_user: ubuntu
   ansible.builtin.command: >
     /usr/local/bin/helm plugin install https://github.com/databus23/helm-diff --verify=false
   when: "'diff' not in helm_plugins.stdout"
@@ -83,7 +83,7 @@
     # https://docs.tigera.io/calico/latest/getting-started/kubernetes/helm
     - name: Add calico repository
       become: true
-      become_user: ctrlplane
+      become_user: ubuntu
       kubernetes.core.helm_repository:
         name: projectcalico
         repo_url: https://docs.tigera.io/calico/charts
@@ -91,7 +91,7 @@
     # https://cert-manager.io/docs/installation/helm/
     - name: Add cert-manager repository
       become: true
-      become_user: ctrlplane
+      become_user: ubuntu
       kubernetes.core.helm_repository:
         name: jetstack
         repo_url: https://charts.jetstack.io
@@ -99,7 +99,7 @@
     # https://artifacthub.io/packages/helm/falcosecurity/falco
     - name: Add falco repository
       become: true
-      become_user: ctrlplane
+      become_user: ubuntu
       kubernetes.core.helm_repository:
         name: falcosecurity
         repo_url: https://falcosecurity.github.io/charts
@@ -107,7 +107,7 @@
     # https://artifacthub.io/packages/helm/prometheus-community/kube-prometheus-stack
     - name: Add prometheus stack repository
       become: true
-      become_user: ctrlplane
+      become_user: ubuntu
       kubernetes.core.helm_repository:
         name: prometheus-community
         repo_url: https://prometheus-community.github.io/helm-charts
@@ -115,7 +115,7 @@
     # https://artifacthub.io/packages/helm/longhorn/longhorn
     - name: Add longhorn repository
       become: true
-      become_user: ctrlplane
+      become_user: ubuntu
       kubernetes.core.helm_repository:
         name: longhorn
         repo_url: https://charts.longhorn.io
@@ -123,7 +123,7 @@
     # https://artifacthub.io/packages/helm/traefik/traefik/
     - name: Add traefik repository
       become: true
-      become_user: ctrlplane
+      become_user: ubuntu
       kubernetes.core.helm_repository:
         name: traefik
         repo_url: https://traefik.github.io/charts

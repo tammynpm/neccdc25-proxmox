@@ -34,12 +34,26 @@
     line: 'ExecStart=/usr/bin/dockerd --containerd=/run/containerd/containerd.sock'
     mode: "0644"
 
+- name: Ensure docker systemd drop-in directory exists #tammy
+  ansible.builtin.file:
+    path: /etc/systemd/system/docker.service.d
+    state: directory
+    mode: "0755"
+
+- name: Set Docker minimum API version #tammy
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/docker.service.d/10-docker-min-api.conf 
+    content: |
+      [Service]
+      Environment=DOCKER_MIN_API_VERSION=1.24
+    mode: "0644"
+
 - name: Restart and enable the docker service
   ansible.builtin.systemd:
     name: docker
     state: restarted
     enabled: true
-    daemon-reload: true
+    daemon_reload: true
 
 - name: Add docker group to user
   ansible.builtin.user:
@@ -65,6 +79,14 @@
   ansible.builtin.file:
     path: "/tmp/cri-dockerd.deb"
     state: absent
+
+- name: unmask cri-docker service
+  ansible.builtin.systemd:
+    name: cri-docker.service
+    masked: false
+    state: started
+    enabled: true
+    daemon_reload: yes
 
 - name: Enable cri-docker service
   ansible.builtin.service:

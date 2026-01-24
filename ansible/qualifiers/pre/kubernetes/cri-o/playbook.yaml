@@ -3,6 +3,20 @@
   hosts: all
   become: true
   tasks:
+    - name: Gather service facts
+      ansible.builtin.service_facts:
+
+    - name: Disable cri-docker units if present (CRI-O only)
+      ansible.builtin.systemd:
+        name: "{{ item }}"
+        state: stopped
+        enabled: false
+        masked: true
+      loop:
+        - cri-docker.service
+        - cri-docker.socket
+      when: item in ansible_facts.services
+
     - name: Install CRI-O
       block:
         - name: Add CRI-O apt key

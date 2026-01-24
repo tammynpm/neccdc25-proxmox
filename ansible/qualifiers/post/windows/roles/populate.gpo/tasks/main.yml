@@ -10,6 +10,11 @@
     src: "{{ gpo_source }}"
     dest: "{{ gpo_destination }}"
 
+- name: Template BGInfo logon script path
+  ansible.windows.win_template:
+    src: scripts.ini.j2
+    dest: "{{ gpo_destination }}Default Computer Policy\\{F1DD26FB-0CAD-4C56-A774-8C52051E0CBF}\\DomainSysvol\\GPO\\User\\Scripts\\scripts.ini"
+
 - name: Ensure GPO features are installed
   ansible.windows.win_feature:
     name: GPMC

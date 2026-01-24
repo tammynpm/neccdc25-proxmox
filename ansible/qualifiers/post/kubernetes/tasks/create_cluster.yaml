@@ -1,8 +1,14 @@
 ---
+- name: check if cluster is already initialized
+  ansible.builtin.stat:
+    path: /etc/kubernetes/admin.conf
+  register: kubeadm_admin_conf
+
 - name: Initialize the cluster
   ansible.builtin.shell:
     cmd: kubeadm init --ignore-preflight-errors all --config /etc/kubernetes/kubeadm-config.yaml
     chdir: /home/ubuntu
+  when: not kubeadm_admin_conf.stat.exists
 
 - name: Copy admin.conf to user's kube config
   ansible.builtin.copy:
@@ -20,6 +26,17 @@
 
 # https://docs.tigera.io/calico/latest/getting-started/kubernetes/helm
 # https://artifacthub.io/packages/helm/projectcalico/tigera-operator
+
+- name: check if calico release exists
+  become: true
+  become_user: ubuntu
+  kubernetes.core.helm_info:
+    name: calico
+    release_namespace: tigera-operator
+  register: calico_info
+  failed_when: false
+  changed_when: false 
+
 - name: Calico helm install
   become: true
   become_user: ubuntu
@@ -29,21 +46,12 @@
     chart_version: 'v3.29.1'
     release_namespace: tigera-operator
     create_namespace: true
+  when: calico_info.release is not defined
   tags:
     - calico
 
 - name: Wait for calico pods to start
   ansible.builtin.pause:
     seconds: 30
-  tags:
-    - calico
-
-- name: Wait for calico pods become ready
-  become: true
-  become_user: ubuntu
-  vars:
-    calico_namespace: calico-system
-  ansible.builtin.shell:
-    cmd: "kubectl wait --namespace={{ calico_namespace }} --for=condition=Ready pods --selector k8s-app=calico-node --timeout=300s"
   tags:
     - calico

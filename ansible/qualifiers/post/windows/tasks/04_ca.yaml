@@ -1,11 +1,11 @@
 ---
 - name: Configure Windows CA
-  hosts: windows_ca
+  hosts: windows_ca3
   gather_facts: false
   vars:
     ansible_become: true
     ansible_become_method: runas
-    ansible_become_user: "{{ ansible_user }}@{{ adserver_domain }}"
+    ansible_become_user: "{{ ansible_user }}@{{ adserver_domain3 }}"
     ansible_become_password: "{{ ansible_password }}"
   vars_files:
     - "../../team_common.yaml"
@@ -14,8 +14,8 @@
   tasks:
     - name: Ensure a server is a domain controller
       microsoft.ad.domain_controller:
-        dns_domain_name: "{{ adserver_domain }}"
-        domain_admin_user: "{{ ansible_user }}@{{ adserver_domain }}"
+        dns_domain_name: "{{ adserver_domain3 }}"
+        domain_admin_user: "{{ ansible_user }}@{{ adserver_domain3 }}"
         domain_admin_password: "{{ ansible_password }}"
         safe_mode_password: "{{ ansible_password }}"
         install_dns: true

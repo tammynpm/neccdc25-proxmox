@@ -1,0 +1,7 @@
+2026-01-15 11:22:15,810 p=841957 u=ble n=ansible INFO| @windows2:
+  |--@windows_ca2:
+  |  |--10.37.32.15
+  |--@windows_dc2:
+  |  |--10.37.33.31
+  |--@windows_workstation2:
+  |  |--10.37.33.30

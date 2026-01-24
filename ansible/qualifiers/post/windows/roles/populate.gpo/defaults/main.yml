@@ -3,3 +3,4 @@
 # defaults file for users
 gpo_destination: "C:\\temp\\gpo\\"
 gpo_fake_names: false
+gpo_scripts_domain: "{{ adserver_domain3 | default(adserver_domain) }}"

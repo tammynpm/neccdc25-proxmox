@@ -1,30 +1,30 @@
 ---
 - name: Domain Join for Windows Servers and Workstations
-  hosts: "{{ ansible_limit | default('windows_clients') }}"
+  hosts: windows_clients3
   gather_facts: true
   gather_subset: "!all,system"
   vars_files:
     - "../../team_common.yaml"
 
   tasks:
-    - name: Include AWS SAC Role
-      ansible.builtin.include_role:
-        name: aws.sac
-      when: ansible_system_vendor is defined and ansible_system_vendor == 'Amazon EC2'
+    # - name: Include AWS SAC Role
+    #   ansible.builtin.include_role:
+    #     name: aws.sac
+    #   when: ansible_system_vendor is defined and ansible_system_vendor == 'Amazon EC2'
 
     - name: Include Base Windows Role
       ansible.builtin.include_role:
         name: base_win
       vars:
         set_hostname: "{{ hostname }}"
-        dns_servers: "{{ team_address.windows_dc }}"
+        dns_servers: "{{ team_address.windows_dc3 }}"
         ntp_resync: true
 
     - name: Join Object to Active Directory Domain
       microsoft.ad.membership:
        hostname: "{{ hostname }}"
-       dns_domain_name: "{{ adserver_domain }}"
-       domain_admin_user: "{{ ansible_user }}@{{ adserver_domain }}"
+       dns_domain_name: "{{ adserver_domain3 }}"
+       domain_admin_user: "{{ ansible_user }}@{{ adserver_domain3 }}"
        domain_admin_password: "{{ ansible_password }}"
        state: domain
       register: result_domain    

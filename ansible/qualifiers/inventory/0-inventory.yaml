@@ -1,10 +1,11 @@
 ctrl_plane:
   hosts:
-    10.37.33.23:
-      ansible_ssh_private_key_file: ~/.ssh/blackteam
+    10.37.33.27:
+      ansible_ssh_private_key_file: ~/.ssh/black-team
       ansible_user: ubuntu
   vars:
     hostname: ctrl-plane
+    
 database:
   hosts:
     10.37.33.15:
@@ -12,11 +13,13 @@ database:
       ansible_user: database
   vars:
     hostname: database
+
 firewall:
   hosts:
-    10.37.31.4
+    10.37.1.204
   vars:
     hostname: firewall
+
 graylog:
   hosts:
     10.37.32.10:
@@ -38,6 +41,7 @@ node_1:
     10.37.33.19:
       ansible_ssh_private_key_file: ~/.ssh/blackteam
       ansible_user: ubuntu
+      ansible_become_password: "ubuntu"
   vars:
     hostname: node-1
 node_2:
@@ -45,6 +49,7 @@ node_2:
     10.37.33.18:
       ansible_ssh_private_key_file: ~/.ssh/blackteam
       ansible_user: ubuntu
+      ansible_become_password: "ubuntu"
   vars:
     hostname: node-2
 node_3:
@@ -52,6 +57,7 @@ node_3:
     10.37.33.20:
       ansible_ssh_private_key_file: ~/.ssh/blackteam
       ansible_user: ubuntu
+      ansible_become_password: "ubuntu"
   vars:
     hostname: node-3
 windows_ca:
@@ -75,6 +81,47 @@ windows_workstation:
   vars:
     hostname: win01
 
+windows_ca2:
+  hosts:
+    10.37.32.15:
+      ansible_user: Administrator
+      ansible_become_password: "Thunderpoint789*"
+  vars:
+    hostname: ca-02
+windows_dc2:
+  hosts:
+    10.37.33.33:
+      ansible_user: Administrator
+  vars:
+    hostname: dc-02
+windows_workstation2:
+  hosts:
+    10.37.33.36:
+      ansible_user: Administrator
+      ansible_become_password: "Thunderpoint789*"
+  vars:
+    hostname: win-02
+
+windows_ca3:
+  hosts:
+    10.37.32.16:
+      ansible_user: Administrator
+      ansible_become_password: "Thunderpoint789*"
+  vars:
+    hostname: ca-03
+windows_dc3:
+  hosts:
+    10.37.33.39:
+      ansible_user: Administrator
+  vars:
+    hostname: dc-03
+windows_workstation3:
+  hosts:
+    10.37.33.38:
+      ansible_user: Administrator
+      ansible_become_password: "Thunderpoint789*"
+  vars:
+    hostname: win-03
 # scorestack:
 #   hosts: 
 #     10.37.31.3:
