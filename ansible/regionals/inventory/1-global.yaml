@@ -27,6 +27,7 @@ linux:
     node_0:
     node_1:
     node_2:
+    semaphore:
     teleport:
   vars:
     ansible_user: black-team

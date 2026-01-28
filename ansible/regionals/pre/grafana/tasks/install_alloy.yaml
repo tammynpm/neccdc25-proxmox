@@ -1,0 +1,23 @@
+---
+- name: Add GPG key Grafana Alloy
+  ansible.builtin.apt_key:
+    url: https://apt.grafana.com/gpg.key
+    state: present
+  tags:
+    - alloy
+
+- name: Add Grafana repository Grafana ALloy
+  ansible.builtin.apt_repository:
+    repo: "deb https://apt.grafana.com stable main"
+    state: present
+    filename: grafana
+  tags:
+    - alloy
+
+- name: Install Alloy 
+  ansible.builtin.apt:
+    name: alloy
+    state: present
+    update_cache: yes
+  tags:
+    - alloy

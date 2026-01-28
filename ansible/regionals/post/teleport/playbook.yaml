@@ -35,8 +35,8 @@
     - name: Update Teleport public address
       ansible.builtin.replace:
         path: /etc/teleport.yaml
-        regexp: 'teleport\.placebo-pharma\.com'
-        replace: 'teleport.{{ team_number }}.placebo-pharma.com'
+        regexp: 'teleport\.chefops\.tech'
+        replace: 'teleport.{{ team_number }}.chefops.tech'
       notify: Restart Teleport
 
 

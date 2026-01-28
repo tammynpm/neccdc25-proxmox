@@ -1,0 +1,25 @@
+---
+- name: Install XAMPP
+  chocolatey.chocolatey.win_chocolatey:
+    name: xampp-81
+    version: "{{ xampp_version }}"
+    state: present
+
+- name: Verify XAMPP installed
+  ansible.windows.win_stat:
+    path: C:\xampp\xampp-control.exe
+  register: xampp_installed
+
+- name: Start XAMPP
+  ansible.windows.win_command: C:\xampp\xampp_start.exe
+  when: xampp_stat.stat.exists
+  changed_when: false
+
+- name: Wait for XAMPP Web UI
+  ansible.windows.win_uri:
+    url: http://localhost
+    status_code: 200
+  register: xampp_ui
+  until: xampp_ui.status == 200
+  retries: 5
+  delay: 5

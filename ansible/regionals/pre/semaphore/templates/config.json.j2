@@ -1,0 +1,26 @@
+{
+  "sqlite": {
+    "host": "{{ semaphore_config_dir }}/database.sqlite"
+  },
+  "schedule": {
+    "timezone": "{{ semaphore_timezone | default('America/New_York') }}"
+  },
+  "dialect": "sqlite",
+  "port": "{{ semaphore_port }}",
+  "interface": "0.0.0.0",
+  "max_task_duration_sec": 3600,
+  "max_parallel_tasks": {{ semaphore_max_parallel_tasks | default(3) }},
+  "non_admin_can_create_project": true,
+  "env_vars": {},
+  "auth": {
+    "totp": {
+      "enabled": true,
+      "issuer": "Semaphore",
+      "allow_recovery": false
+    }
+  },
+  "tmp_path": "/tmp/semaphore",
+  "cookie_hash": "{{ lookup('password', '/dev/null chars=ascii_letters,digits length=32') | b64encode }}",
+  "cookie_encryption": "{{ lookup('password', '/dev/null chars=ascii_letters,digits length=32') | b64encode }}",
+  "access_key_encryption": "{{ lookup('password', '/dev/null chars=ascii_letters,digits length=32') | b64encode }}"
+}

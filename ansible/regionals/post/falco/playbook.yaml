@@ -1,0 +1,17 @@
+---
+- name: Configure falco Stack
+  hosts: falco
+  become: true
+  vars:
+    team_number: "{{ hostvars[inventory_hostname]['team'] }}"
+    falco_port: 2802
+    falco_server_name: falco
+  tasks:
+    - name: Configure Teleport
+      ansible.builtin.include_tasks:
+        file: "tasks/teleport.yaml"
+      vars:
+        join_token: D36NUP1F0FTVIUA
+        teleport_server_dns_address: teleport.{{ team_number }}.chefops.tech
+      tags:
+        - teleport

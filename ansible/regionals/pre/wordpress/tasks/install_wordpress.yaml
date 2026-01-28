@@ -1,0 +1,19 @@
+---
+- name: Download wordpress archive
+  ansible.builtin.get_url:
+    url: https://wordpress.org/wordpress-5.8.3.tar.gz
+    dest: /var/www/html/wordpress-5.8.3.tar.gz
+
+- name: Extract wordpress
+  ansible.builtin.unarchive:
+    src: /var/www/html/wordpress-5.8.3.tar.gz
+    dest: /var/www/html/wordpress
+
+- name: Change ownership of /var/www/html/wordpress
+  ansible.builtin.file:
+    path: /var/www/html/wordpress
+    owner: "{{wp_owner}}"
+    group: "{{wp_group}}"
+    state: directory
+    mode: '0755'
+    recurse: yes

@@ -1,0 +1,21 @@
+---
+- name: Configure Grafana Stack
+  hosts: grafana
+  become: true
+  vars:
+    former_employees_data: "{{ lookup('file', '../../../../documentation/employee_data/former_employees.yaml') | from_yaml }}"
+    users_data: "{{ lookup('file', '../../../../documentation/employee_data/employees.yaml') | from_yaml }}"
+    team_number: "{{ hostvars[inventory_hostname]['team'] }}"
+    grafana_admin_user: "admin"
+    grafana_admin_password: "admin"
+    grafana_url: "http://localhost:9000"
+  tasks:
+    - name: configure Teleport
+      ansible.builtin.include_tasks:
+        file: "tasks/teleport.yaml"
+      vars:
+        join_token: R28HKJHU184Y5TJA
+        teleport_server_dns_address: teleport.{{ team_number }}.chefops.tech
+      tags:
+        - teleport
+

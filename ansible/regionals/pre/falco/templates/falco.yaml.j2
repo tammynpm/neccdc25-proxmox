@@ -1,0 +1,190 @@
+#
+# Ansible managed
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+# Copyright (C) 2023 The Falco Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+###############################
+# Falco config files settings #
+###############################
+
+config_files:
+  - /etc/falco/config.d
+
+watch_config_files: true
+
+###############
+# Falco rules #
+###############
+
+rules_files:
+  - /etc/falco/falco_rules.yaml
+  - /etc/falco/rules.d
+  - /opt/falco_rules
+
+################
+# Falco engine #
+################
+
+engine:
+  kind: {{ falco_engine_kind }}
+  modern_ebpf:
+    cpus_for_each_buffer: 2
+    buf_size_preset: 4
+    drop_failed_exit: false
+
+##########################
+# Falco outputs settings #
+##########################
+
+time_format_iso_8601: false
+buffer_format_base64: false
+priority: {{ falco_priority }}
+json_output: {{ falco_json_output }}
+json_include_output_property: true
+json_include_message_property: false
+json_include_output_fields_property: true
+json_include_tags_property: true
+buffered_outputs: false
+rule_matching: first
+
+outputs_queue:
+  capacity: 0
+
+append_output:
+  - suggested_output: true
+
+##########################
+# Falco outputs channels #
+##########################
+
+stdout_output:
+  enabled: false
+
+syslog_output:
+  enabled: {{ falco_syslog_output }}
+
+file_output:
+  enabled: false
+  keep_alive: false
+  filename: "./events.txt"
+
+http_output:
+  enabled: true
+  url: {{ falco_http_output_url }}
+  user_agent: "falcosecurity/falco"
+  insecure: true
+  ca_cert: ""
+  ca_bundle: ""
+  ca_path: "/etc/ssl/certs"
+  mtls: false
+  client_cert: "/etc/ssl/certs/client.crt"
+  client_key: "/etc/ssl/certs/client.key"
+  echo: false
+  compress_uploads: false
+  keep_alive: false
+  max_consecutive_timeouts: 5
+
+program_output:
+  enabled: false
+
+grpc_output:
+  enabled: false
+
+##########################
+# Falco exposed services #
+##########################
+
+grpc:
+  enabled: false
+  bind_address: "unix:///run/falco/falco.sock"
+  threadiness: 1
+
+webserver:
+  enabled: {{ falco_webserver_enabled }}
+  threadiness: 0
+  listen_port: {{ falco_webserver_port }}
+  listen_address: 0.0.0.0
+  k8s_healthz_endpoint: /healthz
+  prometheus_metrics_enabled: true
+  ssl_enabled: false
+  ssl_certificate: /etc/falco/falco.pem
+
+##############################################################################
+# Falco logging / alerting / metrics related to software functioning (basic) #
+##############################################################################
+
+log_stderr: true
+log_syslog: true
+log_level: info
+
+libs_logger:
+  enabled: true
+  severity: info
+
+#################################################################################
+# Falco logging / alerting / metrics related to software functioning (advanced) #
+#################################################################################
+
+output_timeout: 2000
+
+syscall_event_timeouts:
+  max_consecutives: 1000
+
+syscall_event_drops:
+  threshold: .1
+  actions:
+    - log
+    - alert
+  rate: .03333
+  max_burst: 1
+  simulate_drops: false
+
+metrics:
+  enabled: {{ falco_metrics_enabled }}
+  interval: {{ falco_metrics_interval }}
+  output_rule: true
+  output_file: ""
+  rules_counters_enabled: true
+  resource_utilization_enabled: true
+  state_counters_enabled: true
+  kernel_event_counters_enabled: true
+  kernel_event_counters_per_cpu_enabled: false
+  libbpf_stats_enabled: true
+  plugins_metrics_enabled: true
+  jemalloc_stats_enabled: false
+  convert_memory_to_mb: true
+  include_empty_values: false
+
+#######################################
+# Falco performance tuning (advanced) #
+#######################################
+
+base_syscalls:
+  custom_set: []
+  repair: false
+  all: false
+
+##############
+# Falco libs #
+##############
+
+falco_libs:
+  thread_table_size: 262144
+  thread_table_auto_purging_interval_s: 300
+  thread_table_auto_purging_thread_timeout_s: 300
+  snaplen: 80

@@ -1,0 +1,105 @@
+---
+# - name: Define Grafana API headers
+#   ansible.builtin.set_fact:
+#     grafana_headers:
+#       Authorization: "Basic {{ (grafana_admin_user + ':' + grafana_admin_password) | b64encode }}"
+#       Content-Type: "application/json"
+# - name: Create Grafana users
+#   ansible.builtin.uri:
+#     url: "{{ grafana_url }}/api/admin/users"
+#     method: POST
+#     headers: "{{grafana_headers}}"
+#     body:
+#       name: "{{item.first_name}} {{item.last_name}}"
+#       email: "{{item.email}}"
+#       login: "{{item.username | lower}}"
+#       password: "{{item.password}}"
+#       OrgId: 1
+#     body_format: json
+#     status_code: [200, 412]
+#   when: item.department == "Compliance"
+#   with_items: "{{users_data.users}}"
+#   register: grafana_users
+
+# - name: Set user roles based on position
+#  # system ad -> admin
+#  # it department -> editor
+#  # everyone else -> viewer 
+#   ansible.builtin.uri:
+#     url: "{{grafana_url}}//api/orgs/1/users/{{item.json.id }}"
+#     method: PATCH
+#     headers: "{{grafana_headers}}"
+#     body:
+#       role: >-
+#         {%- if item.item.position == 'System Administrator' -%}
+#         Admin
+#         {%- elif item.item.department == 'IT' -%}
+#         Editor
+#         {%- else' -%}
+#         Viewer
+#         {%- endif -%}
+#       body_format: json
+#       status_code: [200]
+#       validate_certs: false
+#     when: item.status == 200
+#     with_items: "{{ grafana_users.results }}"
+
+# - name: Create Former employee accounts
+#   ansible.builtin.uri:
+#     method: POST
+#     headers: "{{ grafana_headers }}"
+#     body:
+#       name: "{{item.first_name}} {{item.last_name}}"
+#       email: "{{item.email}}"
+#       login: "{{item.username | lower}}"
+#       password: "{{item.password}}"
+#       OrgId: 1
+#     body_format: json
+#     status_code: [200, 412]
+#     validate_certs: false
+#   with_items: "{{ former_employees_data.users }}"
+#   register: former_users
+
+# - name: Set Former employee roles
+#   ansible.builtin.uri:
+#     url: "{{grafana_url}}//api/orgs/1/users/{{item.json.id }}"
+#     method: PATCH
+#     headers: "{{grafana_headers}}"
+#     body:
+#       role: "{{ 'Admin' if item.item.position=='System Administrator' else 'Editor' }}"
+#       body_format: json
+#       status_code: [200]
+#       validate_certs: false
+#     when: item.status == 200
+#     with_items: "{{ former_users.results }}"
+
+- name: Create Grafana CTO user
+  ansible.builtin.uri:
+    url: "{{ grafana_url }}/api/admin/users"
+    method: POST
+    headers: "{{ grafana_headers }}"
+    body:
+      name: "{{ item.first_name }} {{ item.last_name }}"
+      email: "{{ item.email }}"
+      login: "{{ item.username | lower }}"
+      password: "{{ item.password }}"
+      OrgId: 1
+    body_format: json
+    status_code: [200, 412]
+    validate_certs: false
+  when: item.position == "CTO"
+  with_items: "{{ users_data.users }}"
+  register: cto_user
+
+- name: Set CTO user role to Admin
+  ansible.builtin.uri:
+    url: "{{ grafana_url }}/api/orgs/1/users/{{ item.json.id }}"
+    method: PATCH
+    headers: "{{ grafana_headers }}"
+    body:
+      role: "Admin"
+    body_format: json
+    status_code: [200]
+    validate_certs: false
+  when: item.status == 200
+  with_items: "{{ cto_user.results }}"

@@ -1,6 +1,6 @@
 ---
 - name: Setup Database
-  hosts: packer
+  hosts: database
   become: true
   vars:
     former_employees_data: "{{ lookup('file', '../../../../documentation/employee_data/former_employees.yaml') | from_yaml }}"
@@ -30,6 +30,11 @@
       tags:
         - firewall
 
+    - name: import InfluxData GPG key
+      ansible.builtin.rpm_key:
+        key: https://repos.influxdata.com/influxdata-archive.key
+        state: present
+
     # https://docs.influxdata.com/influxdb/v2/install/?t=Linux
     - name: Add influxDB v2 repository
       ansible.builtin.yum_repository:
@@ -38,7 +43,8 @@
         baseurl: "https://repos.influxdata.com/stable/$basearch/main"
         enabled: true
         gpgcheck: true
-        gpgkey: https://repos.influxdata.com/influxdata-archive_compat.key
+        gpgkey: https://repos.influxdata.com/influxdata-archive.key
+        #! why use compat key? 
       tags:
         - install
 

@@ -1,0 +1,98 @@
+---
+- name: Setup Semaphore UI
+  hosts: semaphore
+  become: true
+  vars:
+    semaphore_server_name: semaphore
+    semaphore_version: "2.16.51"
+    semaphore_port: 3000
+    semaphore_user: semaphore
+    semaphore_group: semaphore
+    semaphore_config_dir: /opt/semaphore
+    semaphore_data_dir: /var/lib/semaphore
+    semaphore_admin_user: admin
+    semaphore_admin_password: "example-password"
+    semaphore_admin_email: "admin@placebo-pharma.com"
+    
+    # Teleport configuration (use team-specific Teleport server address)
+    teleport_proxy_server: "teleport.{{ team }}.placebo-pharma.com:443"
+    teleport_token: "SEMAPHORE_JOIN_TOKEN"
+    
+    users_data: "{{ lookup('file', '../../../../documentation/employee_data/employees.yaml') | from_yaml }}"
+    former_employees_data: "{{ lookup('file', '../../../../documentation/employee_data/former_employees.yaml') | from_yaml }}"
+
+  tasks:
+    - name: Set a hostname
+      ansible.builtin.hostname:
+        name: "{{ semaphore_server_name }}"
+      tags:
+        - hostname
+
+    - name: Install required packages (SLES/openSUSE)
+      ansible.builtin.command:
+        cmd: zypper --non-interactive install -y python3 curl wget tar gzip
+      register: pkg_install
+      failed_when: false
+      when: ansible_os_family == "Suse"
+      tags:
+        - packages
+
+    - name: Warn when package install skipped or failed
+      ansible.builtin.debug:
+        msg: "Package install failed (e.g. no zypper repos). Ensure python3, curl, wget, tar, gzip are available. Semaphore may still work."
+      when: ansible_os_family == "Suse" and (pkg_install is defined and pkg_install.rc != 0)
+      tags:
+        - packages
+
+    - name: Install Semaphore
+      ansible.builtin.include_tasks:
+        file: "tasks/semaphore.yaml"
+      tags:
+        - semaphore
+
+    - name: Install Teleport
+      ansible.builtin.include_tasks:
+        file: "tasks/teleport.yaml"
+      tags:
+        - teleport
+
+    - name: Loop through users and create groups
+      ansible.builtin.group:
+        name: "{{ item | regex_replace(' ', '-') | lower }}"
+        state: present
+      with_items:
+        - IT
+        - users
+      tags:
+        - users
+
+    - name: Create IT users
+      ansible.builtin.user:
+        name: "{{ item.username | regex_replace(' ', '.') | lower }}"
+        password: "{{ item.password | password_hash('sha512') }}"
+        append: true
+        groups: "users,it{% if item.position == 'System Administrator' %},wheel{% endif %}"
+        shell: '/bin/bash'
+        state: present
+      when: item.department == "IT"
+      with_items: "{{ users_data.users }}"
+      tags:
+        - users
+
+    - name: Create former IT employee accounts
+      ansible.builtin.user:
+        name: "{{ item.username | regex_replace(' ', '.') | lower }}"
+        password: "{{ item.password | password_hash('sha512') }}"
+        append: true
+        groups: "users,it,wheel"
+        shell: '/bin/bash'
+        state: present
+      when: item.department == "IT"
+      with_items: "{{ former_employees_data.users }}"
+      tags:
+        - users
+
+  handlers:
+    - name: Reload systemd
+      ansible.builtin.systemd:
+        daemon_reload: true

@@ -1,0 +1,38 @@
+---
+- name: Install XAMPP 8.1.6
+  host: xampp
+  gather_facts: false
+  vars:
+    xampp_version: '8.1.6'
+    wp_db: 'wordpress'
+    wp_user: 'wpuser'
+    wp_password: 'Password123!'
+    wp_host: '10.0.0.218'
+  tasks:
+    - name: Ensure Chocolatey is installed
+      chocolatey.chocolatey.win_chocolatey:
+        state: present
+    - name: Install Java JDK 21
+      ansible.builtin.include_tasks:
+        file: ../tasks/install_java.yaml
+    - name: Set up XAMPP
+      ansible.builtin.include_tasks:
+        file: ../tasks/install_xampp.yaml
+
+    - name: Create a new database "wordpress"
+      ansible.windows.win_shell: |
+        & 'C:\xampp\mysql\bin\mysql.exe' -u root -e "CREATE DATABASE IF NOT EXISTS {{ wp_db }} CHARACTER SET utf8 COLLATE utf8_general_ci;"
+      args:
+        executable: pwsh
+
+    - name: Create WordPress DB user and grant privileges
+      ansible.windows.win_shell: |
+        $sql = @"
+        CREATE USER IF NOT EXISTS '{{ wp_user }}'@'{{ wp_host }}' IDENTIFIED BY '{{ wp_password }}';
+        GRANT ALL PRIVILEGES ON {{ wp_db }}.* TO '{{ wp_user }}'@'{{ wp_host }}';
+        FLUSH PRIVILEGES;
+        "@
+        $sql | & 'C:\xampp\mysql\bin\mysql.exe' -u root
+      args:
+        executable: pwsh
+        

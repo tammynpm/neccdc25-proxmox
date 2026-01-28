@@ -1,5 +1,0 @@
-#SPDX-License-Identifier: MIT-0
----
-# defaults file for users
-gpo_destination: "C:\\temp\\gpo\\"
-gpo_fake_names: false

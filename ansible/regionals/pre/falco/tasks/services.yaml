@@ -1,0 +1,40 @@
+---
+- name: Create falcosidekick systemd service
+  ansible.builtin.template:
+    src: "falcosidekick.service.j2"
+    dest: /etc/systemd/system/falcosidekick.service
+    mode: '0644'
+  notify: reload systemd
+  tags:
+    - services
+    - falcosidekick
+
+- name: Enable and start falcosidekick service
+  ansible.builtin.systemd:
+    name: falcosidekick
+    enabled: true
+    state: started
+    daemon_reload: true
+  tags:
+    - services
+    - falcosidekick
+
+- name: Enable and start falco-modern-bpf service
+  ansible.builtin.systemd:
+    name: falco-modern-bpf
+    enabled: true
+    state: started
+    daemon_reload: true
+  tags:
+    - services
+    - falco
+
+- name: Enable falcoctl artifact follow service
+  ansible.builtin.systemd:
+    name: falcoctl-artifact-follow
+    enabled: true
+    state: started
+    daemon_reload: true
+  tags:
+    - services
+    - falco

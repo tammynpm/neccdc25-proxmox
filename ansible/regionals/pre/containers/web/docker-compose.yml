@@ -1,8 +1,0 @@
-services:
-  nginx:
-    build: .
-    platform: linux/amd64
-    volumes:
-      - ./src:/usr/share/nginx/html
-    ports:
-      - "80:80"

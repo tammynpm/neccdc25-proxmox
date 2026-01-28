@@ -1,0 +1,17 @@
+---
+- name: Install nginx
+  ansible.builtin.apt:
+    name: 
+      - "nginx={{ nginx_version }}"
+      - nginx-extras
+    state: present
+  tags: 
+    - nginx
+
+- name: Install prometheus exporter
+  ansible.builtin.apt:
+    name: prometheus-nginx-exporter
+    state: present
+  tags:
+    - nginx
+    

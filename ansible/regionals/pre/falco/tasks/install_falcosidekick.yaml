@@ -1,0 +1,88 @@
+---
+- name: Create falcosidekick directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+  loop:
+    - /etc/falcosidekick
+  tags:
+    - falcosidekick
+
+- name: Get falcosidekick binary URL for amd64
+  ansible.builtin.set_fact:
+    falcosidekick_binary_url: "https://github.com/falcosecurity/falcosidekick/releases/download/{{ falcosidekick_version }}/falcosidekick_{{ falcosidekick_version }}_linux_amd64.tar.gz"
+  tags:
+    - falcosidekick
+
+- name: Download falcosidekick binary
+  ansible.builtin.get_url:
+    url: "{{ falcosidekick_binary_url }}"
+    dest: /tmp/falcosidekick.tar.gz
+    mode: '0644'
+  tags:
+    - falcosidekick
+
+- name: Extract falcosidekick binary
+  ansible.builtin.unarchive:
+    src: /tmp/falcosidekick.tar.gz
+    dest: /tmp
+    remote_src: true
+  tags:
+    - falcosidekick
+
+- name: Find extracted falcosidekick binary
+  ansible.builtin.find:
+    paths: /tmp
+    patterns: "falcosidekick"
+    file_type: file
+    recurse: true
+  register: falcosidekick_binary
+  tags:
+    - falcosidekick
+
+- name: Install falcosidekick binary
+  ansible.builtin.copy:
+    src: "{{ falcosidekick_binary.files[0].path }}"
+    dest: /usr/local/bin/falcosidekick
+    mode: '0755'
+    remote_src: true
+  tags:
+    - falcosidekick
+
+- name: Create falcosidekick configuration file
+  ansible.builtin.template:
+    src: "config.yaml.j2"
+    dest: /etc/falcosidekick/config.yaml
+    mode: '0644'
+  notify: restart falcosidekick
+  tags:
+    - falcosidekick
+    - config
+
+- name: Clean up temporary files
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - /tmp/falcosidekick.tar.gz
+  tags:
+    - falcosidekick
+
+- name: Clean up extracted files
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: absent
+  loop: "{{ falcosidekick_binary.files }}"
+  tags:
+    - falcosidekick
+
+- name: Clean up extracted directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - /tmp/falcosidekick-{{ falcosidekick_version }}
+  tags:
+    - falcosidekick
+  ignore_errors: yes

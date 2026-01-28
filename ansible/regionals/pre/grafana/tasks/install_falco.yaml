@@ -1,0 +1,23 @@
+---
+- name: Add GPG key Falco
+  ansible.builtin.apt_key:
+    url: https://falco.org/repo/falcosecurity-packages.asc
+    state: present
+  tags:
+    - falco
+
+- name: Add repository Falco
+  ansible.builtin.apt_repository:
+    repo: "deb https://download.falco.org/packages/deb stable main"
+    state: present
+    filename: falcosecurity
+  tags:
+    - falco
+
+- name: Install Falco
+  ansible.builtin.apt:
+    name: "falco={{ falco_version }}"
+    state: present
+    update_cache: yes
+  tags:
+    - falco 

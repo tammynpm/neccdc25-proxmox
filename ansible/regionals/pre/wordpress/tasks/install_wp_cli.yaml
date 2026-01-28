@@ -1,0 +1,12 @@
+---
+- name: Download WP-CLI phar
+  ansible.builtin.get_url:
+    url: https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
+    dest: /usr/local/bin/wp
+    mode: '0755'
+
+- name: verity WP-CLI works
+  ansible.builtin.command:
+    cmd: php /usr/local/bin/wp --info
+  register: wp_cli_info
+  changed_when: false

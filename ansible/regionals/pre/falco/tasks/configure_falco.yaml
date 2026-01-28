@@ -1,0 +1,54 @@
+---
+- name: Copy Falco main configuration file
+  ansible.builtin.template:
+    src: "falco.yaml.j2"
+    dest: /etc/falco/falco.yaml
+    mode: '0644'
+    backup: yes
+  notify: restart falco
+  tags:
+    - falco
+    - config
+
+- name: Check if source rules files exist
+  ansible.builtin.stat:
+    path: "{{ item }}"
+  register: rules_file_stat
+  loop:
+    - "../file/falco_rules.yaml"
+    - "../file/falco_rules.local.yaml"
+  tags:
+    - falco
+    - config
+
+- name: Copy Falco rules file (default rules)
+  ansible.builtin.copy:
+    src: "../file/falco_rules.yaml"
+    dest: /etc/falco/falco_rules.yaml
+    mode: '0644'
+    remote_src: false
+  when: rules_file_stat.results[0].stat.exists
+  tags:
+    - falco
+    - config
+
+- name: Copy Falco local rules file
+  ansible.builtin.copy:
+    src: "../file/falco_rules.local.yaml"
+    dest: /etc/falco/falco_rules.local.yaml
+    mode: '0644'
+    remote_src: false
+  when: rules_file_stat.results[1].stat.exists
+  tags:
+    - falco
+    - config
+
+- name: Create empty falco_rules.local.yaml if source doesn't exist
+  ansible.builtin.copy:
+    content: "# Your custom rules!\n"
+    dest: /etc/falco/falco_rules.local.yaml
+    mode: '0644'
+  when: not rules_file_stat.results[1].stat.exists
+  tags:
+    - falco
+    - config

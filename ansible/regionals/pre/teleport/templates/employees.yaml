@@ -2,7 +2,7 @@ kind: role
 version: v7
 metadata:
   name: employee
-  description: General access granted to all PlaceboPharma employees to perform job actions
+  description: General access granted to all ChefOps employees to perform job actions
 spec:
   options:
     create_host_user_mode: keep

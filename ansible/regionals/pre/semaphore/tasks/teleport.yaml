@@ -1,0 +1,57 @@
+---
+# Teleport installation for different OS families
+- name: Install Teleport (SLES/openSUSE)
+  when: ansible_os_family == "Suse"
+  block:
+    - name: Import Teleport's repo signing key
+      ansible.builtin.command:
+        cmd: rpm --import https://zypper.releases.teleport.dev/gpg
+
+    - name: Add Teleport repository (SLES)
+      ansible.builtin.copy:
+        dest: /etc/zypp/repos.d/teleport.repo
+        owner: root
+        group: root
+        mode: '0644'
+        content: |
+          [teleport]
+          name=Gravitational Teleport packages
+          enabled=1
+          autorefresh=1
+          baseurl=https://zypper.releases.teleport.dev/sles/15/Teleport/x86_64/stable/v17
+          type=rpm-md
+          gpgcheck=1
+      tags:
+        - teleport
+
+    - name: Refresh zypper repositories
+      ansible.builtin.command:
+        cmd: zypper --non-interactive --gpg-auto-import-keys refresh teleport 
+      changed_when: true
+      tags:
+        - teleport
+
+    - name: Install Teleport package (SLES)
+      ansible.builtin.command:
+        cmd: zypper --non-interactive install -y teleport
+      tags:
+        - teleport
+
+- name: Copy Teleport configuration
+  ansible.builtin.template:
+    src: templates/teleport.yaml.j2
+    dest: /etc/teleport.yaml
+    owner: root
+    group: root
+    mode: '0644'
+  tags:
+    - teleport
+
+- name: Enable and start Teleport service
+  ansible.builtin.systemd:
+    name: teleport
+    state: started
+    enabled: true
+    daemon_reload: true
+  tags:
+    - teleport

@@ -8,6 +8,17 @@
         <descr><![CDATA[Interface WAN_DHCP Gateway]]></descr>
         <gw_down_kill_states></gw_down_kill_states>
     </gateway_item>
+{% if interfaces.public.ipv6_type != 'none' %}
+    <gateway_item>
+        <interface>wan</interface>
+        <gateway>dynamic</gateway>
+        <name>WAN_DHCP6</name>
+        <weight>1</weight>
+        <ipprotocol>inet6</ipprotocol>
+        <descr><![CDATA[Interface WAN_DHCP6 Gateway]]></descr>
+        <gw_down_kill_states></gw_down_kill_states>
+    </gateway_item>
+{% endif %}
 </gateways>
 <interfaces>
     <wan>
@@ -16,8 +27,23 @@
         <ipaddr>dhcp</ipaddr>
         <dhcphostname></dhcphostname>
         <mediaopt></mediaopt>
+{% if interfaces.public.ipv6_type == 'dhcp6' %}
+        <ipaddrv6>dhcp6</ipaddrv6>
+        <dhcp6-duid></dhcp6-duid>
+        <dhcp6-ia-pd-len>{{ interfaces.public.ipv6_prefixlen | default(0) }}</dhcp6-ia-pd-len>
+{% elif interfaces.public.ipv6_type == 'slaac' %}
+        <ipaddrv6>slaac</ipaddrv6>
         <dhcp6-duid></dhcp6-duid>
         <dhcp6-ia-pd-len>0</dhcp6-ia-pd-len>
+{% elif interfaces.public.ipv6_type == 'static' and interfaces.public.ipv6_address %}
+        <ipaddrv6>{{ interfaces.public.ipv6_address }}</ipaddrv6>
+        <subnetv6>{{ interfaces.public.ipv6_prefixlen | default(64) }}</subnetv6>
+        <dhcp6-duid></dhcp6-duid>
+        <dhcp6-ia-pd-len>0</dhcp6-ia-pd-len>
+{% else %}
+        <dhcp6-duid></dhcp6-duid>
+        <dhcp6-ia-pd-len>0</dhcp6-ia-pd-len>
+{% endif %}
         <descr><![CDATA[{{ interfaces.public.descr }}]]></descr>
         <spoofmac></spoofmac>
     </wan>
@@ -28,6 +54,16 @@
         <spoofmac></spoofmac>
         <ipaddr>{{ interfaces.lan.ipv4_address }}</ipaddr>
         <subnet>{{ interfaces.lan.ipv4_prefixlen }}</subnet>
+{% if interfaces.lan.ipv6_type == 'static' and interfaces.lan.ipv6_address %}
+        <ipaddrv6>{{ interfaces.lan.ipv6_address }}</ipaddrv6>
+        <subnetv6>{{ interfaces.lan.ipv6_prefixlen | default(64) }}</subnetv6>
+{% elif interfaces.lan.ipv6_type == 'dhcp6' %}
+        <ipaddrv6>dhcp6</ipaddrv6>
+        <subnetv6>{{ interfaces.lan.ipv6_prefixlen | default(64) }}</subnetv6>
+{% elif interfaces.lan.ipv6_type == 'slaac' %}
+        <ipaddrv6>slaac</ipaddrv6>
+        <subnetv6>{{ interfaces.lan.ipv6_prefixlen | default(64) }}</subnetv6>
+{% endif %}
     </lan>
     <opt1>
         <descr><![CDATA[{{ interfaces.corp.descr }}]]></descr>
@@ -36,6 +72,16 @@
         <spoofmac></spoofmac>
         <ipaddr>{{ interfaces.corp.ipv4_address }}</ipaddr>
         <subnet>{{ interfaces.corp.ipv4_prefixlen }}</subnet>
+{% if interfaces.corp.ipv6_type == 'static' and interfaces.corp.ipv6_address %}
+        <ipaddrv6>{{ interfaces.corp.ipv6_address }}</ipaddrv6>
+        <subnetv6>{{ interfaces.corp.ipv6_prefixlen | default(64) }}</subnetv6>
+{% elif interfaces.corp.ipv6_type == 'dhcp6' %}
+        <ipaddrv6>dhcp6</ipaddrv6>
+        <subnetv6>{{ interfaces.corp.ipv6_prefixlen | default(64) }}</subnetv6>
+{% elif interfaces.corp.ipv6_type == 'slaac' %}
+        <ipaddrv6>slaac</ipaddrv6>
+        <subnetv6>{{ interfaces.corp.ipv6_prefixlen | default(64) }}</subnetv6>
+{% endif %}
     </opt1>
     <opt2>
         <descr><![CDATA[{{ interfaces.dmz.descr }}]]></descr>
@@ -44,6 +90,16 @@
         <spoofmac></spoofmac>
         <ipaddr>{{ interfaces.dmz.ipv4_address }}</ipaddr>
         <subnet>{{ interfaces.dmz.ipv4_prefixlen }}</subnet>
+{% if interfaces.dmz.ipv6_type == 'static' and interfaces.dmz.ipv6_address %}
+        <ipaddrv6>{{ interfaces.dmz.ipv6_address }}</ipaddrv6>
+        <subnetv6>{{ interfaces.dmz.ipv6_prefixlen | default(64) }}</subnetv6>
+{% elif interfaces.dmz.ipv6_type == 'dhcp6' %}
+        <ipaddrv6>dhcp6</ipaddrv6>
+        <subnetv6>{{ interfaces.dmz.ipv6_prefixlen | default(64) }}</subnetv6>
+{% elif interfaces.dmz.ipv6_type == 'slaac' %}
+        <ipaddrv6>slaac</ipaddrv6>
+        <subnetv6>{{ interfaces.dmz.ipv6_prefixlen | default(64) }}</subnetv6>
+{% endif %}
     </opt2>
 </interfaces>
 <virtualip>

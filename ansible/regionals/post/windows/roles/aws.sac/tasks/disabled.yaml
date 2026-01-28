@@ -1,8 +1,0 @@
----
-- name: BCDEdit Set EMS displaybootmenu
-  ansible.windows.win_command:
-    cmd: bcdedit /set {bootmgr} displaybootmenu no
-
-- name: BCDEdit Set EMS on
-  ansible.windows.win_command:
-    cmd: bcdedit /ems {current} off

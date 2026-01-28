@@ -4,11 +4,11 @@ metadata:
   name: {{ username }}
 spec:
   roles:
-  {% for role in teleport_roles %}
-  - {{ role }}
-  {% endfor %}
-{# Have this indented since its getting tabbed over automatically #}
-traits:
+{% set roles_list = teleport_roles if teleport_roles is iterable and teleport_roles is not string else (teleport_roles | replace("'", '"') | from_json) %}
+{% for role in roles_list %}
+    - {{ role }}
+{% endfor %}
+  traits:
     aws_role_arns: null
     db_names: null
     db_users: null

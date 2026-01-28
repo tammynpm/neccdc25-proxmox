@@ -33,6 +33,9 @@ interfaces:
     ipv4_type: dhcp
     blockpriv: false
     blockbogons: false
+    # IPv6 Configuration
+    ipv6_type: dhcp6  # Options: none, dhcp6, slaac, static
+    ipv6_prefixlen: 64  # Only used for static IPv6
   lan:
     interface: "{{ pfsense_versions[pfsense_version].interface_convention }}1"
     descr: LAN
@@ -41,6 +44,10 @@ interfaces:
     ipv4_prefixlen: 26
     blockpriv: false
     blockbogons: false
+    # IPv6 Configuration
+    ipv6_type: static  # Options: none, dhcp6, slaac, static
+    ipv6_address: '{{ team_address.firewall_private_ipv6 | default("") }}'  # Add IPv6 addresses to team_address vars
+    ipv6_prefixlen: 64
   corp:
     interface: "{{ pfsense_versions[pfsense_version].interface_convention }}2"
     descr: CORP
@@ -49,6 +56,10 @@ interfaces:
     ipv4_prefixlen: 25
     blockpriv: false
     blockbogons: false
+    # IPv6 Configuration
+    ipv6_type: static
+    ipv6_address: '{{ team_address.firewall_corp_ipv6 | default("") }}'
+    ipv6_prefixlen: 64
   dmz:
     interface: "{{ pfsense_versions[pfsense_version].interface_convention }}3"
     descr: DMZ
@@ -57,6 +68,10 @@ interfaces:
     ipv4_prefixlen: 27
     blockpriv: false
     blockbogons: false
+    # IPv6 Configuration
+    ipv6_type: static
+    ipv6_address: '{{ team_address.firewall_dmz_ipv6 | default("") }}'
+    ipv6_prefixlen: 64
 
 unbound_custom_options: |
   server:
@@ -66,3 +81,15 @@ unbound_custom_options: |
   local-data: "{{ team_domain }} 86400 IN A {{ team_address.firewall_vip }}"
   local-zone: "teleport.{{ team_domain }}" redirect
   local-data: "teleport.{{ team_domain }} 86400 IN A {{ team_address.teleport }}"
+  local-zone: "grafana.teleport.{{ team_domain }}" redirect
+  local-data: "grafana.teleport.{{ team_domain }} 86400 IN A {{ team_address.teleport }}"
+  local-zone: "semaphore.teleport.{{ team_domain }}" redirect
+  local-data: "semaphore.teleport.{{ team_domain }} 86400 IN A {{ team_address.teleport }}"
+  local-zone: "falco.teleport.{{ team_domain }}" redirect
+  local-data: "falco.teleport.{{ team_domain }} 86400 IN A {{ team_address.teleport }}"
+  local-zone: "influxdb.teleport.{{ team_domain }}" redirect
+  local-data: "influxdb.teleport.{{ team_domain }} 86400 IN A {{ team_address.teleport }}"
+  local-zone: "mimir.teleport.{{ team_domain }}" redirect
+  local-data: "mimir.teleport.{{ team_domain }} 86400 IN A {{ team_address.teleport }}"
+  local-zone: "loki.teleport.{{ team_domain }}" redirect
+  local-data: "loki.teleport.{{ team_domain }} 86400 IN A {{ team_address.teleport }}"

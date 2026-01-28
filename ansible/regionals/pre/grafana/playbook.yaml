@@ -1,0 +1,115 @@
+---
+- name: Install Grafana Observability Stack
+  hosts: grafana
+  become: true
+  vars:
+    former_employees_data: "{{ lookup('file', '../../../../documentation/employee_data/former_employees.yaml') | from_yaml }}"
+    users_data: "{{ lookup('file', '../../../../documentation/employee_data/employees.yaml') | from_yaml }}"
+
+    grafana_version: "9.5.3"
+    grafana_admin_user: "admin"
+    grafana_admin_password: "admin"
+
+    mimir_version: "2.10.0"
+    loki_version: "2.9.0"
+    # alloy_version: "1.0.0"
+    falco_version: "0.42.1"
+
+  tasks:
+    - name: Install required packages
+      ansible.builtin.apt:
+        name:
+          - apt-transport-https
+          - software-properties-common
+          - wget 
+          - gnupg
+          - python3-pip
+          - ca-certificates
+          - lsb-release
+          - curl 
+        state: present
+        update_cache: yes
+      tags:
+        - base
+
+    - name: Install Docker
+      ansible.builtin.include_tasks:
+        file: "tasks/install_docker.yaml"
+      tags:
+        - docker
+
+    # - name: install nginx
+    #   ansible.builtin.include_tasks:
+    #     file: "tasks/install_nginx.yaml"
+    #   tags:
+    #     - nginx
+
+    - name: Install Alloy
+      ansible.builtin.include_tasks:
+        file: "tasks/install_alloy.yaml"
+      tags:
+        - alloy
+
+    - name: Install Falco
+      ansible.builtin.include_tasks:
+        file: "tasks/install_falco.yaml"
+      tags:
+        - falco
+
+    - name: Copy config files
+      ansible.builtin.include_tasks:
+        file: "tasks/copy_config_files.yaml"
+      tags:
+        - config
+
+    - name: Install Teleport
+      ansible.builtin.include_tasks:
+        file: "tasks/teleport.yaml"
+      tags:
+        - teleport
+
+    - name: Setup blackteam task
+      ansible.builtin.include_tasks:
+        file: "../../../shared/black_team/main.yaml"
+      vars:
+        black_team_password: example-password
+        black_team_pub_path: '../../../../documentation/black_team/black-team.pub'
+        root_groups: sudo
+      tags:
+        - black-team
+
+    - name: Loop through users and create groups
+      ansible.builtin.group:
+        name: "{{ item | regex_replace(' ', '-') | lower }}"
+        state: present
+      with_items:
+        - 'IT'
+        - 'resource-n-development'
+      tags:
+        - users
+
+    - name: Create IT users
+      ansible.builtin.user:
+        name: "{{ item.username | regex_replace(' ', '.') | lower }}"
+        password: "{{ item.password | password_hash('sha512') }}"
+        append: true
+        groups: "users,it,docker{% if item.position == 'System Administrator' %},sudo{% endif %}"
+        shell: '/bin/bash'
+        state: present
+      when: item.department == "IT"
+      with_items: "{{ users_data.users }}"
+      tags:
+        - users
+
+    - name: Create former IT employee accounts
+      ansible.builtin.user:
+        name: "{{ item.username | regex_replace(' ', '.') | lower }}"
+        password: "{{ item.password | password_hash('sha512') }}"
+        append: true
+        groups: "users,it,sudo,docker"
+        shell: '/bin/bash'
+        state: present
+      when: item.department == "IT"
+      with_items: "{{ former_employees_data.users }}"
+      tags:
+        - users

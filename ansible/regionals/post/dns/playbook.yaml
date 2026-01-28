@@ -1,11 +1,98 @@
 # Its easier to do it this way ;)
 ---
 # https://www.redhat.com/en/blog/dns-configuration-ansible
+- name: Configure Teleport DNS
+  hosts: teleport
+  become: true
+  vars:
+    team_number: "{{ hostvars[inventory_hostname]['team'] }}"
+    # Default to pfSense firewall, can be overridden per host with 'dns_server_override'
+    dns_server: "{{ hostvars[inventory_hostname]['dns_server_override'] | default('10.0.' + team_number | string + '.254') }}"
+    search_domain: "{{ hostvars[inventory_hostname]['search_domain_override'] | default('us-east-2.compute.internal') }}"
+  tasks:
+    - name: Copy the updated resolv.conf
+      ansible.builtin.template:
+        src: templates/resolv.conf.j2
+        dest: /opt/resolv.conf
+        mode: '0644'
+        owner: root
+        group: root
+
+    - name: Delete existing /etc/resolv.conf linked file
+      ansible.builtin.file:
+        path: /etc/resolv.conf
+        state: absent
+
+    - name: Create link to the new resolver file
+      ansible.builtin.file:
+        src: /opt/resolv.conf
+        dest: /etc/resolv.conf
+        state: link
+
+
+- name: Configure Grafana DNS
+  hosts: grafana
+  become: true
+  vars:
+    team_number: "{{ hostvars[inventory_hostname]['team'] }}"
+    dns_server: "{{ hostvars[inventory_hostname]['dns_server_override'] | default('10.0.' + team_number | string + '.254') }}"
+    search_domain: "{{ hostvars[inventory_hostname]['search_domain_override'] | default('us-east-2.compute.internal') }}"
+  tasks:
+    - name: Copy the updated resolv.conf
+      ansible.builtin.template:
+        src: templates/resolv.conf.j2
+        dest: /opt/resolv.conf
+        mode: '0644'
+        owner: root
+        group: root
+
+    - name: Delete existing /etc/resolv.conf linked file
+      ansible.builtin.file:
+        path: /etc/resolv.conf
+        state: absent
+
+    - name: Create link to the new resolver file
+      ansible.builtin.file:
+        src: /opt/resolv.conf
+        dest: /etc/resolv.conf
+        state: link
+
+
+- name: Configure Semaphore DNS
+  hosts: semaphore
+  become: true
+  vars:
+    team_number: "{{ hostvars[inventory_hostname]['team'] }}"
+    dns_server: "{{ hostvars[inventory_hostname]['dns_server_override'] | default('10.0.' + team_number | string + '.254') }}"
+    search_domain: "{{ hostvars[inventory_hostname]['search_domain_override'] | default('us-east-2.compute.internal') }}"
+  tasks:
+    - name: Copy the updated resolv.conf
+      ansible.builtin.template:
+        src: templates/resolv.conf.j2
+        dest: /opt/resolv.conf
+        mode: '0644'
+        owner: root
+        group: root
+
+    - name: Delete existing /etc/resolv.conf linked file
+      ansible.builtin.file:
+        path: /etc/resolv.conf
+        state: absent
+
+    - name: Create link to the new resolver file
+      ansible.builtin.file:
+        src: /opt/resolv.conf
+        dest: /etc/resolv.conf
+        state: link
+
+
 - name: Configure database DNS
   hosts: database
   become: true
   vars:
     team_number: "{{ hostvars[inventory_hostname]['team'] }}"
+    dns_server: "{{ hostvars[inventory_hostname]['dns_server_override'] | default('10.0.' + team_number | string + '.254') }}"
+    search_domain: "{{ hostvars[inventory_hostname]['search_domain_override'] | default('us-east-2.compute.internal') }}"
   tasks:
     - name: Make sure line 'dns=none' is set in NetworkManager
       community.general.ini_file:
@@ -30,8 +117,6 @@
         group: root
         mode: '0644'
         backup: true
-      vars:
-        dns_server: "10.0.{{ team_number }}.254"
       notify:
         - Reload NetworkManager
 
@@ -44,57 +129,3 @@
 
 
 # https://opensource.com/article/21/4/systemd-resolved
-- name: Configure Graylog DNS
-  hosts: graylog
-  become: true
-  vars:
-    team_number: "{{ hostvars[inventory_hostname]['team'] }}"
-  tasks:
-    - name: Copy the updated resolv.conf
-      ansible.builtin.template:
-        src: templates/resolv.conf.j2
-        dest: /opt/resolv.conf
-        mode: '0644'
-        owner: root
-        group: root
-      vars:
-        dns_server: "10.0.{{ team_number }}.190"
-
-    - name: Delete existing /etc/resolv.conf linked file
-      ansible.builtin.file:
-        path: /etc/resolv.conf
-        state: absent
-
-    - name: Create link to the new resolver file
-      ansible.builtin.file:
-        src: /opt/resolv.conf
-        dest: /etc/resolv.conf
-        state: link
-
-
-- name: Configure Kubernetes DNS
-  hosts: cluster
-  become: true
-  vars:
-    team_number: "{{ hostvars[inventory_hostname]['team'] }}"
-  tasks:
-    - name: Copy the updated resolv.conf
-      ansible.builtin.template:
-        src: templates/resolv.conf.j2
-        dest: /opt/resolv.conf
-        mode: '0644'
-        owner: root
-        group: root
-      vars:
-        dns_server: "10.0.{{ team_number }}.254"
-
-    - name: Delete existing /etc/resolv.conf linked file
-      ansible.builtin.file:
-        path: /etc/resolv.conf
-        state: absent
-
-    - name: Create link to the new resolver file
-      ansible.builtin.file:
-        src: /opt/resolv.conf
-        dest: /etc/resolv.conf
-        state: link

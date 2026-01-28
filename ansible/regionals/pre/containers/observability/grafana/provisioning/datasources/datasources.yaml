@@ -1,0 +1,23 @@
+# Grafana datasources provisioning
+# https://grafana.com/docs/grafana/latest/administration/provisioning/
+apiVersion: 1
+
+datasources:
+  - name: Mimir
+    type: prometheus
+    access: proxy
+    url: http://mimir:9009/prometheus
+    isDefault: true
+    editable: false
+    jsonData:
+      httpMethod: POST
+      manageAlerts: true
+      prometheusType: Mimir
+
+  - name: Loki
+    type: loki
+    access: proxy
+    url: http://loki:3100
+    editable: false
+    jsonData:
+      maxLines: 1000

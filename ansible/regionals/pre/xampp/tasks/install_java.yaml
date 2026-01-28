@@ -1,0 +1,24 @@
+---
+- name: Install Temurin JDK 21
+  chocolatey.chocolatey.win_chocolatey:
+    name: temurin21jdk
+    state: present
+
+- name: Set JAVA_HOME
+  ansible.windows.win_environment:
+    state: present
+    name: JAVA_HOME
+    value: 'C:\Program Files\Eclipse Adptoium\jdk-21*'
+    level: machine
+
+- name: Add JAVA_HOME\bin to system PATH
+  ansible.windows.win_path:
+    elements:
+      - '%JAVA_HOMES%\bin'
+    scope: machine
+    state: present
+
+- name: Verify Java
+  ansible.windows.win_command: java -version
+  register: java_ver
+  changed_when: false

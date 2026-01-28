@@ -1,0 +1,43 @@
+---
+- name: Install EPEL repository
+  ansible.builtin.dnf:
+    name: epel-release
+    state: present
+  tags:
+    - falco
+
+- name: Import Falco GPG key
+  ansible.builtin.rpm_key:
+    state: present
+    key: https://falco.org/repo/falcosecurity-packages.asc
+  tags:
+    - falco
+
+- name: Add Falco repository
+  ansible.builtin.yum_repository:
+    name: falcosecurity
+    description: Falco Security Packages
+    baseurl: https://download.falco.org/packages/rpm
+    gpgcheck: yes
+    gpgkey: https://falco.org/repo/falcosecurity-packages.asc
+    enabled: yes
+  tags:
+    - falco
+
+- name: Install Falco
+  ansible.builtin.dnf:
+    name: "falco-{{ falco_version }}"
+    state: present
+  tags:
+    - falco
+
+- name: Ensure Falco directories exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+  loop:
+    - /etc/falco
+    - /etc/falco/rules.d
+  tags:
+    - falco

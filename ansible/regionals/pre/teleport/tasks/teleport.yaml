@@ -1,10 +1,10 @@
 ---
-- name: Ensure teleport.placebo-pharma.com points to localhost
+- name: Ensure teleport.chefops.tech points to localhost
   ansible.builtin.lineinfile:
     path: /etc/hosts
     state: present
-    regexp: '^127\.0\.0\.1\s+teleport\.placebo-pharma\.com$'
-    line: '127.0.0.1 teleport.placebo-pharma.com'
+    regexp: '^127\.0\.0\.1\s+teleport\.chefops\.tech$'
+    line: '127.0.0.1 teleport.chefops.tech'
   tags:
     - teleport
 
@@ -13,11 +13,19 @@
 - name: Download teleport repository
   ansible.builtin.get_url:
     # Yanked from the install script
-    url: https://yum.releases.teleport.dev/rhel/9/Teleport/aarch64/stable/v15/teleport-yum.repo
+    url: https://yum.releases.teleport.dev/rhel/9/Teleport/x86_64/stable/v15/teleport-yum.repo
     dest: /etc/yum.repos.d/teleport.repo
     owner: root
     group: root
     mode: '0644'
+    force: true  # Force re-download to update architecture
+  tags:
+    - teleport
+
+- name: Clean dnf cache for teleport repo
+  ansible.builtin.command:
+    cmd: dnf clean all --disablerepo='*' --enablerepo='teleport'
+  changed_when: true
   tags:
     - teleport
 
@@ -68,14 +76,14 @@
   tags:
     - teleport
 
-- name: Wait teleport website is ready
-  ansible.builtin.uri:
-    url: 'https://{{ teleport_server_dns_address }}/webapi/ping'
-    return_content: false
-    status_code: 200
-  until: uri_output.status == 200
-  retries: 24
-  delay: 3
-  register: uri_output
-  tags:
-    - teleport
+# - name: Wait teleport website is ready
+#   ansible.builtin.uri:
+#     url: 'https://10.37.32.20/webapi/ping'
+#     return_content: false
+#     status_code: 200
+#   until: uri_output.status == 200
+#   retries: 24
+#   delay: 3
+#   register: uri_output
+#   tags:
+#     - teleport

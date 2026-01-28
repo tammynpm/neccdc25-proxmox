@@ -1,0 +1,17 @@
+---
+- name: Configure Semaphore Stack
+  hosts: semaphore
+  become: true
+  vars:
+    team_number: "{{ hostvars[inventory_hostname]['team'] }}"
+    semaphore_port: 3000
+    semaphore_server_name: semaphore
+  tasks:
+    - name: Configure Teleport
+      ansible.builtin.include_tasks:
+        file: "tasks/teleport.yaml"
+      vars:
+        join_token: 1NQF7FPT9L9ITBLXURU
+        teleport_server_dns_address: teleport.{{ team_number }}.chefops.tech
+      tags:
+        - teleport

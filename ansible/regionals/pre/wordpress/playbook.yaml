@@ -1,0 +1,65 @@
+---
+- name: Install Wordpress 5.8.3
+  hosts: wordpress
+  become: true
+  vars:
+    xampp_server: "10.37.30.2"
+    wordpress_version: "5.8.3"
+    wp_db_name: "wordpress"
+    wp_db_user: wpuser
+    wp_db_password: Password123!
+    wp_table_prefix: "wp_"
+    wp_path: /var/www/html/wordpress
+    wp_debug: false
+    wp_owner: www-data
+    wp_group: www-data
+
+  tasks:
+    - name: Install required packages
+      ansible.builtin.apt:
+        name:
+          - php-curl
+          - php-xml
+          - php-mbstring
+          - php-zip
+          - php-gd
+    - name: Reload apache2
+      ansible.builtin.service:
+        name: apache2
+        state: reloaded
+        
+    - name: Make sure XAMPP server is reachable #ansible-galaxy collection install ansible.netcommon
+      ansible.netcommon.net_ping:
+        dest: "{{ xampp_server }}"
+
+    - name: Install Wordpress 
+      ansible.builtin.include_tasks:
+        file: ../tasks/install_wordpress.yaml
+
+    - name: Set ServerName
+      ansible.builtin.lineinfile: 
+        path: /etc/apache2/apache2.conf
+        line: 'ServerName {{ xampp_server }}'
+        state: present
+        create: true # create if doesn't exist
+        
+    - name: Configure wp-config.php
+      ansible.builtin.template:
+        src: wp-config.php.j2
+        dest: "{{wp_path}}/wp-config.php"
+        owner: "{{wp_owner}}"
+        group: "{{wp_group}}"
+        mode: '0640'
+      notify: Reload apache
+      
+    - name: Install WP-CLI
+      ansible.builtin.include_tasks:
+        file: ../tasks/install_wp_cli.yaml
+
+    - name: Confirm tables were created on windows DB
+      ansible.builtin.command:
+        cmd: mysql -h {{ xampp_server }} -u {{ wp_user }} -p -D {{ wp_db }} -e "SHOW TABLES;"
+      register: tables
+      changed_when: false
+
+    

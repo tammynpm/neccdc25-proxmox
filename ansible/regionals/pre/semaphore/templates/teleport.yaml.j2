@@ -1,0 +1,37 @@
+version: v3
+teleport:
+  nodename: {{ semaphore_server_name }}
+  data_dir: /var/lib/teleport
+  join_params:
+    token_name: "{{ teleport_token }}"
+    method: token
+  proxy_server: "{{ teleport_proxy_server }}"
+  log:
+    output: stderr
+    severity: INFO
+    format:
+      output: text
+  ca_pin: ""
+  diag_addr: ""
+auth_service:
+  enabled: "no"
+ssh_service:
+  enabled: "yes"
+  labels:
+    service: semaphore
+  commands:
+    - name: hostname
+      command: [hostname]
+      period: 1m0s
+proxy_service:
+  enabled: "no"
+  https_keypairs: []
+  https_keypairs_reload_interval: 0s
+  acme: {}
+app_service:
+  enabled: yes
+  apps:
+    - name: semaphore
+      uri: "http://localhost:{{ semaphore_port }}"
+      labels:
+        service: semaphore

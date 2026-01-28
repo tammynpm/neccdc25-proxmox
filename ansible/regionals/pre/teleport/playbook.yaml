@@ -1,9 +1,9 @@
 ---
 - name: Setup Teleport
-  hosts: packer
+  hosts: teleport
   become: true
   vars:
-    teleport_server_dns_address: teleport.placebo-pharma.com
+    teleport_server_dns_address: teleport.chefops.tech
     teleport_server_name: teleport
     users_data: "{{ lookup('file', '../../../../documentation/employee_data/employees.yaml') | from_yaml }}"
     former_employees_data: "{{ lookup('file', '../../../../documentation/employee_data/former_employees.yaml') | from_yaml }}"
@@ -36,7 +36,7 @@
 
     - name: Download yq
       ansible.builtin.get_url:
-        url: 'https://github.com/mikefarah/yq/releases/download/v4.45.1/yq_linux_arm64'
+        url: 'https://github.com/mikefarah/yq/releases/download/v4.45.1/yq_linux_amd64'
         dest: "/usr/bin/yq"
         mode: '0755'
         owner: root
@@ -58,29 +58,6 @@
         root_groups: wheel,adm
       tags:
         - black-team
-
-    # https://docs.aws.amazon.com/systems-manager/latest/userguide/agent-install-rocky.html
-    - name: AWS SSM Agent
-      block:
-        - name: AWS SSM Agent | Install
-          ansible.builtin.dnf:
-            name: 'https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/linux_arm64/amazon-ssm-agent.rpm'
-            state: present
-            disable_gpg_check: true
-          tags:
-            - ssm
-
-        - name: AWS SSM Agent | Start and enable
-          ansible.builtin.service:
-            name: amazon-ssm-agent
-            state: started
-            enabled: true
-          tags:
-            - ssm
-
-    - name: EC2 instance connect
-      ansible.builtin.include_tasks:
-        file: "tasks/eic.yaml"
 
     - name: Enable cockpit
       ansible.builtin.service:
@@ -110,7 +87,6 @@
         teleport_roles:
           - access
           - editor
-          - kube-admin
       tags:
         - black-team
         - teleport_users
@@ -131,12 +107,11 @@
 
     - name: Create Teleport join tokens
       vars:
-        database: SK52P7ZMB375R20BQICC4KKW
-        graylog: 1KSP55J35U9O5YQC92PEZ594
-        kubernetes_agent: STF5Y7KCA80S7IOHEPUNVB6SRMTX1U78
-        kubernetes_ctrl: 98T63LBZWKNR4K8SV3RYNICE
-        kubernetes_0: E5AI7J4P7VBR2FTIZIU1CECI
-        kubernetes_1: K80957CJJFMSYG9A01RDAW6C
+        database: QEZG8CSYCLR8RBAESN
+        grafana: R28HKJHU184Y5TJA
+        semaphore: 1NQF7FPT9L9ITBLXURU
+        falco: D36NUP1F0FTVIUA
+        wordpress: 3418J7M2UKCT4Y5PBX
       block:
         - name: Create Teleport join tokens | Database
           ansible.builtin.command:
@@ -150,63 +125,51 @@
           tags:
             - token
 
-        - name: Create Teleport join tokens | Graylog
+        - name: Create Teleport join tokens | grafana
           ansible.builtin.command:
             cmd: >
               /usr/local/bin/tctl tokens add
                 --type node,app
-                --app-name Graylog
-                --labels service=graylog
+                --app-name Grafana
+                --labels service=grafana
                 --ttl 30d
-                --value {{ graylog }}
+                --value {{ grafana }}
           tags:
             - token
 
-        - name: Create Teleport join tokens | Kubernetes agent
+        - name: Create Teleport join tokens | Semaphore
           ansible.builtin.command:
             cmd: >
               /usr/local/bin/tctl tokens add
-                --type kube,app,discovery
-                --app-name Kubernetes
-                --labels service=kubernetes
+                --type node,app
+                --app-name Semaphore
+                --labels service=semaphore
                 --ttl 30d
-                --value {{ kubernetes_agent }}
+                --value {{ semaphore }}
           tags:
             - token
 
-        - name: Create Teleport join tokens | Kubernetes control plane
+        - name: Create Teleport join tokens | Falco
           ansible.builtin.command:
             cmd: >
               /usr/local/bin/tctl tokens add
-                --type node
-                --app-name KubernetesCtrl
-                --labels service=kubernetes
+                --type node,app
+                --app-name Falco
+                --labels service=falco
                 --ttl 30d
-                --value {{ kubernetes_ctrl }}
+                --value {{ falco }}
           tags:
             - token
 
-        - name: Create Teleport join tokens | Kubernetes node 0
+        - name: Create Teleport join tokens | Wordpress
           ansible.builtin.command:
             cmd: >
               /usr/local/bin/tctl tokens add
-                --type node
-                --app-name Kubernetes0
-                --labels service=kubernetes
+                --type node,app
+                --app-name Wordpress
+                --labels service=wordpress
                 --ttl 30d
-                --value {{ kubernetes_0 }}
-          tags:
-            - token
-
-        - name: Create Teleport join tokens | Kubernetes node 1
-          ansible.builtin.command:
-            cmd: >
-              /usr/local/bin/tctl tokens add
-                --type node
-                --app-name Kubernetes1
-                --labels service=kubernetes
-                --ttl 30d
-                --value {{ kubernetes_1 }}
+                --value {{ wordpress }}
           tags:
             - token
 
@@ -286,8 +249,8 @@
             {% if item.position == 'Database Engineer' %}, 'influxdb-admin'{% endif %}
             {% if item.position == 'System Administrator' %}, 'system-admin', 'windows-admin', 'kube-admin'{% else %}, 'windows'{% endif %}
             {% if item.position == 'Technical Support Manager' %}, 'access', 'editor'{% endif %}
-            {% if item.position == 'Security Engineer' %}, 'graylog-admin', 'kubernetes'{% endif %}
-            {% if item.position == 'SOC Analyst' %}, 'graylog-admin', 'kubernetes'{% else %}, 'graylog', 'monitoring'{% endif %}
+            {% if item.position == 'Security Engineer' %}, 'grafana-admin', 'kubernetes'{% endif %}
+            {% if item.position == 'SOC Analyst' %}, 'grafana-admin', 'kubernetes'{% else %}, 'grafana', 'monitoring'{% endif %}
             {% if item.position == 'Operations Security' %}, 'kube-admin'{% endif %}
           ]
       when: item.department == "IT"
@@ -321,7 +284,7 @@
         password: "{{ item.password }}{{ '0' * (12 - item.password | length) }}"
         teleport_roles:
           - employee
-          - graylog
+          - grafana
           - kubernetes
       when: item.department == "Compliance"
       with_items: "{{ users_data.users }}"
@@ -359,8 +322,8 @@
             {% if item.position == 'Database Engineer' %}, 'influxdb-admin'{% endif %}
             {% if item.position == 'System Administrator' %}, 'system-admin', 'windows-admin', 'kube-admin'{% else %}, 'windows'{% endif %}
             {% if item.position == 'Technical Support Manager' %}, 'access', 'editor'{% endif %}
-            {% if item.position == 'Security Engineer' %}, 'graylog-admin', 'kubernetes'{% endif %}
-            {% if item.position == 'SOC Analyst' %}, 'graylog-admin', 'kubernetes'{% else %}, 'graylog', 'monitoring'{% endif %}
+            {% if item.position == 'Security Engineer' %}, 'grafana-admin', 'kubernetes'{% endif %}
+            {% if item.position == 'SOC Analyst' %}, 'grafana-admin', 'kubernetes'{% else %}, 'grafana', 'monitoring'{% endif %}
             {% if item.position == 'Operations Security' %}, 'kube-admin'{% endif %}
           ]
       when: item.department == "IT"

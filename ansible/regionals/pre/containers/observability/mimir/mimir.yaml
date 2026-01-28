@@ -1,0 +1,24 @@
+# Mimir single binary mode configuration
+# https://grafana.com/docs/mimir/latest/get-started/#:~:text=To%20run%20Grafana%20Mimir%20as%20a%20monolith%20and%20with%20local%20filesystem%20storage%2C%20write%20the%20following%20YAML%20configuration%20to%20a%20file%20named%20demo%2Eyaml%3A
+multitenancy_enabled: false
+
+server:
+  http_listen_port: 9009
+
+blocks_storage:
+  backend: filesystem
+  filesystem:
+    dir: /mimir/blocks
+  tsdb:
+    dir: /mimir/tsdb
+
+compactor:
+  data_dir: /mimir/compactor
+
+ingester:
+  ring:
+    replication_factor: 1
+
+store_gateway:
+  sharding_ring:
+    replication_factor: 1

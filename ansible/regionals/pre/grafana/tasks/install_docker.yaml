@@ -1,0 +1,32 @@
+---
+- name: Add GPG key Docker
+  ansible.builtin.apt_key:
+    url: https://download.docker.com/linux/debian/gpg
+    state: present
+  tags:
+    - docker
+- name: Add repository Docker
+  ansible.builtin.apt_repository:
+    repo: "deb https://download.docker.com/linux/debian bullseye stable"
+    state: present
+    filename: docker
+  tags:
+    - docker
+- name: Install Docker
+  ansible.builtin.apt:
+    name:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+      - docker-compose-plugin
+    state: present
+  tags:
+    - docker
+  
+- name: Start and enable Docker
+  ansible.builtin.service:
+    name: docker
+    state: started
+    enabled: true
+  tags:
+    - docker

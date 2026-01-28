@@ -1,0 +1,66 @@
+---
+- name: Install and Configure Falco
+  hosts: falco
+  become: true
+  handlers:
+    - ansible.builtin.include: handlers/main.yaml
+  vars:
+    falco_version: "0.42.1"
+    falcosidekick_version: "2.32.0"
+    falcosidekick_ui_version: "2.32.0"
+    
+    # Falco configuration
+    falco_engine_kind: "modern_ebpf"
+    falco_json_output: true
+    falco_http_output_url: "http://localhost:2801"
+    falco_syslog_output: true
+    falco_webserver_enabled: true
+    falco_webserver_port: 8765
+    falco_metrics_enabled: true
+    falco_metrics_interval: "1h"
+    falco_priority: "debug"
+    
+    # Falcosidekick configuration
+    falcosidekick_http_port: 2801
+    falcosidekick_minimum_priority: "debug"
+    falcosidekick_discord_webhookurl: "https://example.com"
+    falcosidekick_discord_minimumpriority: "warning"
+    falcosidekick_webui_url: "http://localhost:2802"
+
+  tasks:
+    - name: Install required packages
+      ansible.builtin.dnf:
+        name:
+          - wget
+          - gnupg2
+          - ca-certificates
+          - curl
+        state: present
+        update_cache: yes
+      tags:
+        - base
+
+    - name: Install Falco
+      ansible.builtin.include_tasks:
+        file: "tasks/install_falco.yaml"
+      tags:
+        - falco
+
+    - name: Configure Falco
+      ansible.builtin.include_tasks:
+        file: "tasks/configure_falco.yaml"
+      tags:
+        - falco
+        - config
+
+    - name: Install Falcosidekick
+      ansible.builtin.include_tasks:
+        file: "tasks/install_falcosidekick.yaml"
+      tags:
+        - falcosidekick
+
+    - name: Setup Falco services
+      ansible.builtin.include_tasks:
+        file: "tasks/services.yaml"
+      tags:
+        - services

@@ -1,338 +1,78 @@
-ctrl_plane:
-  hosts:
-    10.0.0.250:
-      team: 0
-    10.0.1.250:
-      team: 1
-    10.0.10.250:
-      team: 10
-    10.0.2.250:
-      team: 2
-    10.0.3.250:
-      team: 3
-    10.0.4.250:
-      team: 4
-    10.0.5.250:
-      team: 5
-    10.0.6.250:
-      team: 6
-    10.0.7.250:
-      team: 7
-    10.0.8.250:
-      team: 8
-    10.0.9.250:
-      team: 9
-  vars:
-    hostname: ctrl-plane
 database:
   hosts:
-    10.0.0.196:
-      team: 0
-    10.0.1.196:
-      team: 1
-    10.0.10.196:
-      team: 10
-    10.0.2.196:
+    10.37.33.43:
+      ansible_user: database
+      ansible_ssh_private_key_file: ../../../../documentation/black_team/black-team
       team: 2
-    10.0.3.196:
-      team: 3
-    10.0.4.196:
-      team: 4
-    10.0.5.196:
-      team: 5
-    10.0.6.196:
-      team: 6
-    10.0.7.196:
-      team: 7
-    10.0.8.196:
-      team: 8
-    10.0.9.196:
-      team: 9
+      dns_server_override: "10.37.1.1"
+      search_domain_override: "proxmox.internal"
   vars:
     hostname: database
+    
 firewall:
   hosts:
-    10.255.0.254:
-      team: 0
-    10.255.1.254:
-      team: 1
-    10.255.10.254:
-      team: 10
-    10.255.2.254:
-      team: 2
-    10.255.3.254:
-      team: 3
-    10.255.4.254:
-      team: 4
-    10.255.5.254:
-      team: 5
-    10.255.6.254:
-      team: 6
-    10.255.7.254:
-      team: 7
-    10.255.8.254:
-      team: 8
-    10.255.9.254:
-      team: 9
   vars:
     hostname: firewall
-graylog:
+grafana:
   hosts:
-    10.0.0.169:
-      team: 0
-    10.0.1.169:
-      team: 1
-    10.0.10.169:
-      team: 10
-    10.0.2.169:
+    10.37.32.22:
+      ansible_user: grafana
+      ansible_ssh_private_key_file: ../../../../documentation/black_team/black-team
       team: 2
-    10.0.3.169:
-      team: 3
-    10.0.4.169:
-      team: 4
-    10.0.5.169:
-      team: 5
-    10.0.6.169:
-      team: 6
-    10.0.7.169:
-      team: 7
-    10.0.8.169:
-      team: 8
-    10.0.9.169:
-      team: 9
+      dns_server_override: "10.37.1.1"
+      search_domain_override: "proxmox.internal"
   vars:
-    hostname: graylog
-node_0:
+    hostname: grafana
+
+falco:
   hosts:
-    10.0.0.200:
-      team: 0
-    10.0.1.200:
-      team: 1
-    10.0.10.200:
-      team: 10
-    10.0.2.200:
+    10.37.33.45:
+      ansible_user: rocky
+      ansible_ssh_private_key_file: ../../../../documentation/black_team/black-team
       team: 2
-    10.0.3.200:
-      team: 3
-    10.0.4.200:
-      team: 4
-    10.0.5.200:
-      team: 5
-    10.0.6.200:
-      team: 6
-    10.0.7.200:
-      team: 7
-    10.0.8.200:
-      team: 8
-    10.0.9.200:
-      team: 9
+      dns_server_override: "10.37.1.1"
+      search_domain_override: "proxmox.internal"
   vars:
-    hostname: node-0
-node_1:
+    hostname: rocky
+
+wordpress:
   hosts:
-    10.0.0.211:
-      team: 0
-    10.0.1.211:
-      team: 1
-    10.0.10.211:
-      team: 10
-    10.0.2.211:
+    10.37.32.23:
+      ansible_user: ubuntu
+      ansible_ssh_private_key_file: ../../../../documentation/black_team/black-team
       team: 2
-    10.0.3.211:
-      team: 3
-    10.0.4.211:
-      team: 4
-    10.0.5.211:
-      team: 5
-    10.0.6.211:
-      team: 6
-    10.0.7.211:
-      team: 7
-    10.0.8.211:
-      team: 8
-    10.0.9.211:
-      team: 9
+      dns_server_override: "10.37.1.1"
+      search_domain_override: "proxmox.internal"
   vars:
-    hostname: node-1
-node_2:
-  hosts:
-    10.0.0.222:
-      team: 0
-    10.0.1.222:
-      team: 1
-    10.0.10.222:
-      team: 10
-    10.0.2.222:
-      team: 2
-    10.0.3.222:
-      team: 3
-    10.0.4.222:
-      team: 4
-    10.0.5.222:
-      team: 5
-    10.0.6.222:
-      team: 6
-    10.0.7.222:
-      team: 7
-    10.0.8.222:
-      team: 8
-    10.0.9.222:
-      team: 9
-  vars:
-    hostname: node-2
+    hostname: ubuntu
+
 teleport:
   hosts:
-    10.0.0.180:
-      team: 0
-    10.0.1.180:
-      team: 1
-    10.0.10.180:
-      team: 10
-    10.0.2.180:
+    10.37.32.20:
+      ansible_ssh_private_key_file: ../../../../documentation/black_team/black-team
+      ansible_user: teleport
       team: 2
-    10.0.3.180:
-      team: 3
-    10.0.4.180:
-      team: 4
-    10.0.5.180:
-      team: 5
-    10.0.6.180:
-      team: 6
-    10.0.7.180:
-      team: 7
-    10.0.8.180:
-      team: 8
-    10.0.9.180:
-      team: 9
+      dns_server_override: "10.37.1.1"
+      search_domain_override: "proxmox.internal"
   vars:
     hostname: teleport
-windows_ca:
+
+semaphore:
   hosts:
-    10.0.0.32:
-      team: 0
-    10.0.1.32:
-      team: 1
-    10.0.10.32:
-      team: 10
-    10.0.2.32:
+    10.37.33.44:
+      ansible_user: semaphore
+      ansible_ssh_private_key_file: ../../../../documentation/black_team/black-team
       team: 2
-    10.0.3.32:
-      team: 3
-    10.0.4.32:
-      team: 4
-    10.0.5.32:
-      team: 5
-    10.0.6.32:
-      team: 6
-    10.0.7.32:
-      team: 7
-    10.0.8.32:
-      team: 8
-    10.0.9.32:
-      team: 9
+      dns_server_override: "10.37.1.1"
+      search_domain_override: "proxmox.internal"
   vars:
-    hostname: ca-01
-windows_dc:
+    hostname: semaphore
+
+win-pos:
   hosts:
-    10.0.0.4:
-      team: 0
-    10.0.1.4:
-      team: 1
-    10.0.10.4:
-      team: 10
-    10.0.2.4:
+    10.37.30.2:
+      ansible_user: Administrator
+      ansible_password: "Thunderpoint789*"
       team: 2
-    10.0.3.4:
-      team: 3
-    10.0.4.4:
-      team: 4
-    10.0.5.4:
-      team: 5
-    10.0.6.4:
-      team: 6
-    10.0.7.4:
-      team: 7
-    10.0.8.4:
-      team: 8
-    10.0.9.4:
-      team: 9
   vars:
-    hostname: dc-01
-windows_dc_2:
-  hosts:
-    10.0.0.120:
-      team: 0
-    10.0.1.120:
-      team: 1
-    10.0.10.120:
-      team: 10
-    10.0.2.120:
-      team: 2
-    10.0.3.120:
-      team: 3
-    10.0.4.120:
-      team: 4
-    10.0.5.120:
-      team: 5
-    10.0.6.120:
-      team: 6
-    10.0.7.120:
-      team: 7
-    10.0.8.120:
-      team: 8
-    10.0.9.120:
-      team: 9
-  vars:
-    hostname: dc-02
-windows_workstation:
-  hosts:
-    10.0.0.67:
-      team: 0
-    10.0.1.67:
-      team: 1
-    10.0.10.67:
-      team: 10
-    10.0.2.67:
-      team: 2
-    10.0.3.67:
-      team: 3
-    10.0.4.67:
-      team: 4
-    10.0.5.67:
-      team: 5
-    10.0.6.67:
-      team: 6
-    10.0.7.67:
-      team: 7
-    10.0.8.67:
-      team: 8
-    10.0.9.67:
-      team: 9
-  vars:
-    hostname: win-01
-windows_workstation_2:
-  hosts:
-    10.0.0.76:
-      team: 0
-    10.0.1.76:
-      team: 1
-    10.0.10.76:
-      team: 10
-    10.0.2.76:
-      team: 2
-    10.0.3.76:
-      team: 3
-    10.0.4.76:
-      team: 4
-    10.0.5.76:
-      team: 5
-    10.0.6.76:
-      team: 6
-    10.0.7.76:
-      team: 7
-    10.0.8.76:
-      team: 8
-    10.0.9.76:
-      team: 9
-  vars:
-    hostname: win-02
+    hostname: xampp

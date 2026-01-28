@@ -1,0 +1,150 @@
+---
+- name: Check if semaphore group exists
+  ansible.builtin.command: getent group {{ semaphore_group }}
+  register: semaphore_group_check
+  failed_when: false
+  changed_when: false
+  tags:
+    - semaphore
+
+- name: Create semaphore group
+  ansible.builtin.group:
+    name: "{{ semaphore_group }}"
+    state: present
+    gid: 1001
+  when: semaphore_group_check.rc != 0
+  tags:
+    - semaphore
+
+- name: Check if semaphore user exists
+  ansible.builtin.command: getent passwd {{ semaphore_user }}
+  register: semaphore_user_check
+  failed_when: false
+  changed_when: false
+  tags:
+    - semaphore
+
+- name: Create semaphore user
+  ansible.builtin.user:
+    name: "{{ semaphore_user }}"
+    group: "{{ semaphore_group }}"
+    uid: 1040
+    shell: /bin/sh
+    system: true
+    create_home: true
+    home: "/home/{{ semaphore_user }}"
+    comment: "SemaphoreUI system user"
+  when: semaphore_user_check.rc != 0
+  tags:
+    - semaphore
+
+- name: Create Semaphore directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ semaphore_user }}"
+    group: "{{ semaphore_group }}"
+    mode: '0755'
+  loop:
+    - "{{ semaphore_config_dir }}"
+    - "{{ semaphore_data_dir }}"
+  tags:
+    - semaphore
+
+- name: Determine system architecture
+  ansible.builtin.set_fact:
+    semaphore_arch: "{{ 'amd64' if ansible_architecture == 'x86_64' else 'arm64' }}"
+  tags:
+    - semaphore
+
+- name: Ensure /tmp directory exists
+  ansible.builtin.file:
+    path: /tmp
+    state: directory
+    mode: '01777'
+  tags:
+    - semaphore
+
+- name: Download Semaphore binary
+  ansible.builtin.get_url:
+    url: "https://github.com/semaphoreui/semaphore/releases/download/v{{ semaphore_version }}/semaphore_{{ semaphore_version }}_linux_{{ semaphore_arch }}.tar.gz"
+    dest: "/tmp/semaphore_{{ semaphore_version }}.tar.gz"
+    mode: '0644'
+  tags:
+    - semaphore
+
+- name: Extract Semaphore binary
+  ansible.builtin.unarchive:
+    src: "/tmp/semaphore_{{ semaphore_version }}.tar.gz"
+    dest: /tmp
+    remote_src: true
+  tags:
+    - semaphore
+
+- name: Install Semaphore binary
+  ansible.builtin.copy:
+    src: /tmp/semaphore
+    dest: /usr/bin/semaphore
+    mode: '0755'
+    owner: root
+    group: root
+    remote_src: true
+  tags:
+    - semaphore
+
+- name: Generate Semaphore configuration
+  ansible.builtin.template:
+    src: templates/config.json.j2
+    dest: "{{ semaphore_config_dir }}/config.json"
+    owner: "{{ semaphore_user }}"
+    group: "{{ semaphore_group }}"
+    mode: '0640'
+  tags:
+    - semaphore
+
+- name: Copy Semaphore systemd service
+  ansible.builtin.template:
+    src: templates/semaphore.service.j2
+    dest: /etc/systemd/system/semaphore.service
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Reload systemd
+  tags:
+    - semaphore
+
+- name: Ensure Semaphore service is started and enabled
+  ansible.builtin.systemd:
+    name: semaphore
+    state: started
+    enabled: true
+    daemon_reload: true
+  tags:
+    - semaphore
+
+- name: Verify Semaphore service is active
+  ansible.builtin.command: systemctl is-active semaphore
+  register: semaphore_active
+  changed_when: false
+  failed_when: semaphore_active.stdout != "active"
+  tags:
+    - semaphore
+
+- name: Wait for Semaphore to listen on port
+  ansible.builtin.wait_for:
+    host: 127.0.0.1
+    port: "{{ semaphore_port }}"
+    state: started
+    timeout: 60
+  tags:
+    - semaphore
+
+- name: Clean up downloaded files
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - "/tmp/semaphore_{{ semaphore_version }}.tar.gz"
+    - /tmp/semaphore
+  tags:
+    - semaphore

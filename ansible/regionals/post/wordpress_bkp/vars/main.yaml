@@ -1,0 +1,22 @@
+---
+# XAMPP
+xampp_version: "8.2.12"
+xampp_installer_url: "https://downloads.sourceforge.net/project/xampp/XAMPP%20Linux/{{ xampp_version }}/xampp-linux-x64-{{ xampp_version }}-0-installer.run"
+xampp_root: "/opt/lampp"
+xampp_htdocs: "{{ xampp_root }}/htdocs"
+xampp_mysql_bin: "{{ xampp_root }}/bin/mysql"
+
+# WordPress
+wordpress_version: "6.4.2"
+wordpress_url: "https://wordpress.org/wordpress-{{ wordpress_version }}.tar.gz"
+wordpress_install_dir: "{{ xampp_htdocs }}/wordpress"
+wp_db_name: "wordpress"
+wp_db_user: "wordpress"
+wp_db_password: "wp_secret_change_me"  # override via vault or extra vars
+wp_db_host: "localhost"
+wp_table_prefix: "wp_"
+wp_debug: false
+
+# Optional: site URL (used in wp-config). Leave empty to use default.
+wp_home: ""
+wp_siteurl: ""

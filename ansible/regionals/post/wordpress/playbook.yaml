@@ -1,0 +1,17 @@
+---
+- name: Configure wordpress 
+  hosts: wordpress
+  become: true
+  vars:
+    team_number: "{{ hostvars[inventory_hostname]['team'] }}"
+    wordpress_port: 80
+    wordpress_server_name: wordpress
+  tasks:
+    - name: Configure Teleport
+      ansible.builtin.include_tasks:
+        file: "tasks/teleport.yaml"
+      vars:
+        join_token: 3418J7M2UKCT4Y5PBX
+        teleport_server_dns_address: teleport.{{ team_number }}.chefops.tech
+      tags:
+        - teleport

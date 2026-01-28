@@ -1,0 +1,57 @@
+---
+- name: Copy stack to /opt/observability
+  ansible.builtin.copy:
+    src: "../containers/observability/"
+    dest: /opt/observability
+    mode: '0644'
+    directory_mode: '0755'
+  tags:
+    - config
+
+- name: Start containers
+  community.docker.docker_compose_v2: #ansible-galaxy collection install community.docker
+    project_src: /opt/observability
+    state: present
+  tags: 
+    - config
+    - containers
+- name: Copy Alloy config
+  ansible.builtin.copy:
+    src: "../containers/observability/alloy/config.alloy"
+    dest: /etc/alloy/config.alloy
+    mode: '0644'
+  tags:
+    - config
+    - alloy
+
+# - name: Create nginx directories
+#   ansible.builtin.file:
+#     path: "{{ item }}"
+#     state: directory
+#     owner: root
+#     group: root
+#     mode: '0755'
+#   loop:
+#     - /etc/nginx/
+#     - /etc/nginx/sites-available
+#     - /etc/nginx/sites-enabled
+#   tags:
+#     - config
+#     - nginx
+
+# - name: Copy nginx config
+#   ansible.builtin.copy:
+#     src: "../containers/observability/nginx/nginx.conf"
+#     dest: /etc/nginx/sites-available/nginx.conf
+#     mode: '0644'
+#   tags:
+#     - config
+#     - nginx
+# - name: Enable nginx site
+#   ansible.builtin.file:
+#     src: /etc/nginx/sites-available/nginx.conf
+#     dest: /etc/nginx/sites-enabled/nginx.conf
+#     state: link
+#   tags:
+#     - config
+#     - nginx
